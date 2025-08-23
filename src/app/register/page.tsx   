@@ -1,0 +1,78 @@
+// src/app/register/page.tsx
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    setErr(null);
+    setLoading(true);
+
+    const { error } = await supabase.auth.signUp({ email, password });
+    setLoading(false);
+
+    if (error) {
+      setErr(error.message);
+    } else {
+      setMsg("Sprawdź e-mail i potwierdź rejestrację 📧");
+      // після 3 секунд редірект на логін
+      setTimeout(() => router.push("/login"), 3000);
+    }
+  }
+
+  return (
+    <main className="min-h-screen grid place-items-center bg-gray-100 dark:bg-gray-900">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-xl shadow">
+        <h1 className="text-2xl font-bold mb-6 text-center">Rejestracja ✨</h1>
+
+        {err && <p className="text-red-500 text-sm mb-3 text-center">{err}</p>}
+        {msg && <p className="text-green-600 text-sm mb-3 text-center">{msg}</p>}
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <input
+            className="w-full px-4 py-2 rounded border"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            className="w-full px-4 py-2 rounded border"
+            type="password"
+            placeholder="Hasło"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            disabled={loading}
+            className="w-full py-2 rounded bg-green-600 text-white font-semibold disabled:opacity-60"
+            type="submit"
+          >
+            {loading ? "Rejestracja..." : "Zarejestruj się"}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-300">
+          Masz konto?{" "}
+          <Link href="/login" className="text-blue-600 underline">
+            Zaloguj się
+          </Link>
+        </p>
+      </div>
+    </main>
+  );
+}

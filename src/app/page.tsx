@@ -3,12 +3,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
-  // Легкий аналог AOS/IntersectionObserver
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const wowRef = useRef<HTMLDivElement | null>(null);
+
+  // Легка анімація появи
   useEffect(() => {
-    const el = document.getElementById("wowBlock");
+    const el = wowRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
       (entries) => {
@@ -26,6 +29,29 @@ export default function Home() {
     return () => io.disconnect();
   }, []);
 
+  const NavLinks = (
+    <>
+      <Link href="/" className="px-2 py-1 rounded hover:bg-white/20 transition">
+        Strona główna
+      </Link>
+      <Link href="/services" className="px-2 py-1 rounded hover:bg-white/20 transition">
+        Usługi
+      </Link>
+      <Link href="/dashboard" className="px-2 py-1 rounded hover:bg-white/20 transition">
+        Moje wydarzenia
+      </Link>
+      <Link href="/partnerstwo" className="px-2 py-1 rounded hover:bg-white/20 transition">
+        Partnerstwo
+      </Link>
+      <Link href="/about" className="px-2 py-1 rounded hover:bg-white/20 transition">
+        O nas
+      </Link>
+      <Link href="/reviews" className="px-2 py-1 rounded hover:bg-white/20 transition">
+        Opinie
+      </Link>
+    </>
+  );
+
   return (
     <>
       {/* Header */}
@@ -36,8 +62,8 @@ export default function Home() {
       >
         <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              {/* внутрішній роут — Link */}
+            {/* LEFT: logo + tagline */}
+            <div className="flex items-center gap-3">
               <Link
                 href="/"
                 id="logo-link"
@@ -46,78 +72,52 @@ export default function Home() {
               >
                 🎁 HappyDate
               </Link>
-
-              <span className="hidden md:inline ml-2 text-base italic text-white/90">
+              <span className="hidden md:inline text-base italic text-white/90">
                 Twój ciepły asystent prezentowy
               </span>
-
-              <button
-                id="audioBtn"
-                title="Posłuchaj nas"
-                className="text-white text-2xl p-2 rounded hover:bg-white/10 transition focus:ring-2 focus:ring-cyan-300"
-                aria-label="Audio prezentacja"
-                type="button"
-              >
-                ✨
-              </button>
             </div>
 
-            <button
-              id="mobile-menu-toggle"
-              className="text-white text-3xl sm:hidden p-2 rounded hover:bg-white/10 focus:ring-2 focus:ring-cyan-300 transition"
-              aria-label="Menu"
-              type="button"
-            >
-              ☰
-            </button>
+            {/* RIGHT: auth actions — завжди видимі + гамбургер */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="px-3 py-1.5 rounded-xl bg-white text-blue-700 font-semibold text-sm transition hover:bg-blue-50"
+              >
+                Zaloguj się
+              </Link>
+              <Link
+                href="/register"
+                className="px-3 py-1.5 rounded-xl bg-white/10 text-white font-semibold text-sm transition hover:bg-white/20"
+              >
+                Rejestracja
+              </Link>
+              <button
+                onClick={() => setMobileOpen((v) => !v)}
+                className="text-white text-3xl sm:hidden p-2 rounded hover:bg-white/10 focus:ring-2 focus:ring-cyan-300 transition"
+                aria-label="Otwórz menu"
+                type="button"
+              >
+                ☰
+              </button>
+            </div>
           </div>
 
           {/* Desktop nav */}
-          <nav className="hidden sm:block mt-4 text-white" id="desktop-menu" aria-label="Menu desktop">
+          <nav className="hidden sm:block mt-4 text-white" aria-label="Menu desktop">
             <div className="flex justify-between items-center flex-wrap gap-4">
-              <div className="flex gap-4 md:gap-6 items-center">
-                {/* внутрішній роут — Link */}
-                <Link
-                  href="/"
-                  className="px-1 py-0.5 rounded bg-white/20 underline font-semibold focus:bg-white/30 transition"
-                >
-                  Strona główna
-                </Link>
-
-                {/* зовнішні до public/pages — лишаємо <a> */}
-                <a href="/pages/services.html" className="px-1 py-0.5 rounded hover:bg-white/20 transition">
-                  Usługi
-                </a>
-                <a href="/pages/dashboard.html" className="px-1 py-0.5 rounded hover:bg-white/20 transition">
-                  Moje wydarzenia
-                </a>
-                <a href="/pages/partnerstwo.html" className="px-1 py-0.5 rounded hover:bg-white/20 transition">
-                  Partnerstwo
-                </a>
-                <a href="/pages/about.html" className="px-1 py-0.5 rounded hover:bg-white/20 transition">
-                  O nas
-                </a>
-                <a href="/pages/reviews.html" className="px-1 py-0.5 rounded hover:bg-white/20 transition">
-                  Opinie
-                </a>
-              </div>
-
-              <div className="flex gap-3 items-center flex-wrap">
-                <a
-                  href="/pages/login.html"
-                  className="px-3 py-1.5 rounded-xl bg-white text-blue-700 font-semibold text-sm transition hover:bg-blue-50"
-                >
-                  Zaloguj się
-                </a>
-                <a
-                  href="/pages/register.html"
-                  className="px-3 py-1.5 rounded-xl bg-white/10 text-white font-semibold text-sm transition hover:bg-white/20"
-                >
-                  Rejestracja
-                </a>
-              </div>
+              <div className="flex gap-4 md:gap-6 items-center">{NavLinks}</div>
             </div>
           </nav>
+
+          {/* Mobile nav (slide-down) */}
+          {mobileOpen && (
+            <nav
+              className="sm:hidden mt-3 text-white bg-white/10 rounded-xl p-3 backdrop-blur-md"
+              aria-label="Menu mobilne"
+            >
+              <div className="flex flex-col gap-2">{NavLinks}</div>
+            </nav>
+          )}
         </div>
       </header>
 
@@ -131,18 +131,18 @@ export default function Home() {
             Zatrzymaj czas, spraw komuś niespodziankę i zobacz łzy radości...
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8">
-            <a
-              href="/pages/generator.html"
+            <Link
+              href="/login"
               className="px-6 py-3 bg-pink-500 text-white rounded-xl text-lg font-semibold shadow-md hover:bg-pink-600 hover:scale-105 focus:ring-2 focus:ring-pink-400 transition"
             >
               Znajdź prezent <span className="inline-block animate-bounce ml-1">🎁</span>
-            </a>
-            <a
-              href="/pages/dashboard.html"
+            </Link>
+            <Link
+              href="/dashboard"
               className="px-6 py-3 bg-yellow-400 text-gray-900 rounded-xl text-lg font-semibold shadow-md hover:bg-yellow-500 hover:scale-105 focus:ring-2 focus:ring-yellow-300 transition"
             >
               Dodaj wydarzenie <span className="inline-block animate-bounce ml-1">📅</span>
-            </a>
+            </Link>
           </div>
         </div>
         <div className="absolute animate-pulse text-pink-400 text-2xl sm:text-3xl top-4 left-4">💖</div>
@@ -151,7 +151,7 @@ export default function Home() {
 
       {/* How it works */}
       <section
-        id="wowBlock"
+        ref={wowRef}
         className="transition-all duration-700 ease-in-out translate-y-10 opacity-0 py-16 bg-white dark:bg-gray-900"
       >
         <div className="max-w-4xl mx-auto text-center px-4">
@@ -191,7 +191,7 @@ export default function Home() {
             <div>
               <h4 className="text-xl font-bold mb-2 flex items-center gap-2">🚚 Wygodna dostawa na czas</h4>
               <p className="text-gray-700 dark:text-gray-300">
-                Prezent dotrze dokładnie wtedy, kiedy powinien — без stresu.
+                Prezent dotrze dokładnie wtedy, kiedy powinien — bez stresu.
               </p>
             </div>
             <div>
@@ -204,30 +204,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Reviews */}
-      <section className="bg-white dark:bg-gray-900 py-16">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h3 className="text-2xl font-semibold mb-10">Opinie naszych użytkowników 💬</h3>
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              { text: "🎁 “Dzięki HappyDate nie zapomniałem o urodzinach żony. Prezent był strzałem w dziesiątkę!”", author: "— Adam, Warszawa" },
-              { text: "💌 “Zgodziłam się z siostrą по latach — prezent z HappyDate to był przełom!”", author: "— Kasia, Gdańsk" },
-              { text: "🌟 “Dostałam kwiaty i voucher w dzień Mamy — dokładnie tak, jak marzyłam.”", author: "— Ola, Kraków" },
-            ].map((r, i) => (
-              <div key={i} className="bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow">
-                <p>{r.text}</p>
-                <p className="text-sm mt-3 text-gray-600 dark:text-gray-400">{r.author}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Gifts */}
       <section className="bg-gray-100 dark:bg-gray-800 py-20 pb-12">
         <div className="max-w-6xl mx-auto px-4">
           <h3 className="text-2xl font-semibold text-center mb-12">🎁 Przykładowe prezenty</h3>
-        {/* зображення мають лежати у public/img */}
+          {/* зображення мають лежати у public/img */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {[
               { src: "/img/money.png", label: "Zestaw SPA + kartka „Kocham Cię”" },
@@ -257,10 +238,10 @@ export default function Home() {
           &copy; 2025 HappyDate. Z miłością tworzymy niezapomniane chwile.
           <br />
           <span className="text-xs opacity-80">
-            Projekt & UX: HappyDate Team |{" "}
-            <a href="/pages/privacy.html" className="underline hover:text-yellow-200">
+            Projekt &amp; UX: HappyDate Team |{" "}
+            <Link href="/privacy" className="underline hover:text-yellow-200">
               Polityka prywatności
-            </a>
+            </Link>
           </span>
         </div>
       </footer>
