@@ -1,21 +1,36 @@
-// /src/js/supabaseClient.js
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// src/js/supabaseClient.js
+import { createClient } from '@supabase/supabase-js';
 
-// Якщо маєш публічний env-файл, спробуємо його підхопити
+// Спочатку пробуємо взяти змінні з env.js (fallback для браузера/статичних сторінок)
 let ENV = {};
 try {
-  // існує у твоєму репо: /src/api/env.js (за структурою)
-  ENV = (await import('/src/api/env.js')).default || {};
-} catch (_) {}
+  // Використовуємо відносний шлях (коректно для білду Next.js)
+  ENV = (await import('../api/env.js')).default || {};
+} catch {
+  // якщо env.js відсутній або SSR-контекст
+  ENV = {};
+}
 
-// fallback на глобальний window.env (можеш визначити у <script> на сторінці)
-const SUPABASE_URL = ENV.SUPABASE_URL || (window.env && window.env.SUPABASE_URL);
-const SUPABASE_ANON_KEY = ENV.SUPABASE_ANON_KEY || (window.env && window.env.SUPABASE_ANON_KEY);
+// Збираємо ключі Supabase (спочатку з процеса, потім з env.js, потім з window.env)
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  ENV.SUPABASE_URL ||
+  (typeof window !== 'undefined' && window.env?.SUPABASE_URL);
+
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  ENV.SUPABASE_ANON_KEY ||
+  (typeof window !== 'undefined' && window.env?.SUPABASE_ANON_KEY);
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error('[supabaseClient] Missing SUPABASE_URL / SUPABASE_ANON_KEY');
 }
 
+// Єдиний екземпляр клієнта
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
 });

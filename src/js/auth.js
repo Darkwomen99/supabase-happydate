@@ -1,17 +1,7 @@
-// /src/js/auth.js — HappyDate Auth (Supabase v2, production‑ready)
+// /src/js/auth.js — HappyDate Auth (Supabase v2, production-ready)
 // Ініціалізація, onAuthStateChange, оновлення UI, guard, API: window.auth
 
-let supabase = null;
-(async () => {
-  try {
-    // Прод-шлях (за бажанням зроби alias /js/supabaseClient.js → /src/js/supabaseClient.js)
-    ({ supabase } = await import('/js/supabaseClient.js'));
-  } catch {
-    ({ supabase } = await import('/src/js/supabaseClient.js'));
-  }
-  if (!supabase) throw new Error('[auth] Не вдалося завантажити Supabase client.');
-  await initAuth();
-})();
+import { supabase } from './supabaseClient.js';
 
 // ─── helpers DOM/UI ────────────────────────────────────────────────────────────
 const $  = (s, r=document) => r.querySelector(s);
@@ -42,25 +32,29 @@ let currentUser = null;
 let authReadyResolve; const authReady = new Promise(r=>authReadyResolve=r);
 
 // ─── init ─────────────────────────────────────────────────────────────────────
-async function initAuth(){
-  const { data: { session } } = await supabase.auth.getSession();
-  currentUser = session?.user || null;
-
-  updateUserUI();
-
-  supabase.auth.onAuthStateChange((_event, session) => {
+(async function initAuth(){
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
     currentUser = session?.user || null;
+
     updateUserUI();
-    if (requiresAuth() && !currentUser) redirectToLogin();
-  });
 
-  if (requiresAuth() && !currentUser) { redirectToLogin(); return; }
+    supabase.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+      updateUserUI();
+      if (requiresAuth() && !currentUser) redirectToLogin();
+    });
 
-  wireUiHandlers();
+    if (requiresAuth() && !currentUser) { redirectToLogin(); return; }
 
-  authReadyResolve();
-  document.dispatchEvent(new CustomEvent('happydate:authReady', { detail: { user: currentUser } }));
-}
+    wireUiHandlers();
+
+    authReadyResolve();
+    document.dispatchEvent(new CustomEvent('happydate:authReady', { detail: { user: currentUser } }));
+  } catch (e) {
+    console.error('[auth] init error:', e);
+  }
+})();
 
 // ─── guard ────────────────────────────────────────────────────────────────────
 function requiresAuth(){
