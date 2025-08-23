@@ -12,8 +12,9 @@
   <!-- Tailwind (MVP) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Global auth layer (window.auth) -->
-  <script type="module" src="/src/js/auth.js"></script>
+  <!-- UWAGA: upewnij się, że plik istnieje jako statyczny: public/js/auth.js -->
+  <!-- Jeśli go nie masz w /public/js, zmień na /src/js/auth.js podczas dev -->
+  <script type="module" src="/js/auth.js"></script>
 
   <style>
     @media (prefers-reduced-motion: reduce){.animate-bounce,.animate-ping,.animate-pulse{animation:none!important}}
@@ -23,7 +24,7 @@
 
   <main class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8">
     <header class="text-center mb-6">
-      <a href="/index.html" class="inline-flex items-center gap-2 text-blue-600 hover:underline">
+      <a href="/" class="inline-flex items-center gap-2 text-blue-600 hover:underline">
         <span class="text-2xl">🎁</span> <span class="font-bold">HappyDate</span>
       </a>
       <h1 class="text-2xl font-bold mt-2">Zaloguj się</h1>
@@ -37,22 +38,17 @@
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" />
         <span>Zaloguj przez Google</span>
       </button>
-      <!-- Dodatkowi dostawcy (Apple, GitHub) — łatwo dodać:
-      <button id="btn-apple" type="button" class="w-full inline-flex items-center justify-center gap-2 border rounded-xl py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-        <span class="text-xl"></span> <span>Zaloguj przez Apple</span>
-      </button>
-      -->
     </div>
 
     <div class="relative my-6">
       <div class="absolute inset-0 flex items-center"><div class="w-full border-t dark:border-gray-700"></div></div>
-      <div class="relative flex justify-center text-sm"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500">albo e‑mail</span></div>
+      <div class="relative flex justify-center text-sm"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500">albo e-mail</span></div>
     </div>
 
     <!-- Email/password -->
     <form id="login-form" class="space-y-4" novalidate>
       <label class="block text-sm font-medium">Email
-        <input id="email" type="email" required autocomplete="email"
+        <input id="email" type="email" required autocomplete="email" autofocus
                class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-gray-900" placeholder="np. anna@example.com" />
       </label>
 
@@ -83,13 +79,11 @@
 
   <!-- Page logic -->
   <script type="module">
-    // Używamy globalnego window.auth (z /src/js/auth.js)
     const $ = (s, r=document) => r.querySelector(s);
     const emailEl = $('#email');
     const passEl  = $('#password');
     const submit  = $('#submitBtn');
 
-    // Prosty toast bez zależności (spójny z auth.js)
     function toast(msg, type='info'){
       try {
         const el = document.createElement('div');
@@ -102,17 +96,23 @@
       } catch {}
     }
 
-    // Mapowanie popularnych błędów Supabase na przyjazne komunikaty PL
+    // Pokazanie miłego komunikatu po resecie hasła / rejestracji
+    (function showArrivalToasts(){
+      const p = new URLSearchParams(location.search);
+      if (p.get('reset') === '1') toast('Hasło zmienione — zaloguj się nowym.', 'ok');
+      if (p.get('registered') === '1') toast('Konto utworzone — zaloguj się.', 'ok');
+    })();
+
+    // Mapowanie błędów Supabase → PL
     function friendlyError(errMsg=''){
       const m = (errMsg||'').toLowerCase();
       if (m.includes('invalid login credentials')) return 'Nieprawidłowy email lub hasło.';
-      if (m.includes('email not confirmed')) return 'Potwierdź adres e‑mail, aby się zalogować.';
+      if (m.includes('email not confirmed')) return 'Potwierdź adres e-mail, aby się zalogować.';
       if (m.includes('too many requests')) return 'Za dużo prób. Spróbuj ponownie za chwilę.';
       if (m.includes('network')) return 'Błąd sieci. Sprawdź połączenie i spróbuj ponownie.';
       return 'Nie udało się zalogować. Spróbuj ponownie.';
     }
 
-    // Obsługa ?returnTo=
     function getReturnTo(){
       const p = new URLSearchParams(location.search);
       return p.get('returnTo') || '/pages/dashboard.html';
@@ -133,7 +133,7 @@
       }
     });
 
-    // Formularz e‑mail/hasło
+    // Formularz e-mail/hasło
     $('#login-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!emailEl.value || !passEl.value) return;
@@ -152,9 +152,6 @@
         if (error) throw error;
 
         toast('Zalogowano pomyślnie ✔', 'ok');
-
-        // Jeśli na URL jest returnTo — auth.js też to potrafi obsłużyć po zdarzeniu,
-        // ale tu robimy szybkie przekierowanie od razu.
         const rt = getReturnTo();
         setTimeout(()=> { location.href = rt; }, 500);
       } catch (e) {

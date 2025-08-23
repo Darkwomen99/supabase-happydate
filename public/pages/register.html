@@ -12,8 +12,8 @@
   <!-- Tailwind (MVP) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Global auth layer (window.auth) -->
-  <script type="module" src="/src/js/auth.js"></script>
+  <!-- Global auth layer (window.auth z /public/js) -->
+  <script type="module" src="/js/auth.js"></script>
 
   <style>
     @media (prefers-reduced-motion: reduce){.animate-bounce,.animate-ping,.animate-pulse{animation:none!important}}
@@ -24,7 +24,7 @@
 
   <main class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8">
     <header class="text-center mb-6">
-      <a href="/index.html" class="inline-flex items-center gap-2 text-blue-600 hover:underline">
+      <a href="/" class="inline-flex items-center gap-2 text-blue-600 hover:underline">
         <span class="text-2xl">🎁</span> <span class="font-bold">HappyDate</span>
       </a>
       <h1 class="text-2xl font-bold mt-2">Załóż konto</h1>
@@ -34,15 +34,15 @@
     <!-- OAuth -->
     <div class="space-y-3">
       <button id="btn-google" type="button"
-        class="w-full inline-flex items-center justify-center gap-2 border rounded-xl py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+        class="w-full inline-flex items-center justify-center gap-2 border rounded-xl py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" />
-        <span>Kontynuuj przez Google</span>
+        <span id="btn-google-text">Kontynuuj przez Google</span>
       </button>
     </div>
 
     <div class="relative my-6">
       <div class="absolute inset-0 flex items-center"><div class="w-full border-t dark:border-gray-700"></div></div>
-      <div class="relative flex justify-center text-sm"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500">albo e‑mail</span></div>
+      <div class="relative flex justify-center text-sm"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500">albo e-mail</span></div>
     </div>
 
     <!-- Email/password -->
@@ -89,7 +89,7 @@
       </label>
 
       <button id="submitBtn" type="submit"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
         Utwórz konto
       </button>
 
@@ -97,13 +97,12 @@
     </form>
 
     <p class="mt-6 text-xs text-gray-500 text-center">
-      Po rejestracji wyślemy link potwierdzający e‑mail.
+      Po rejestracji wyślemy link potwierdzający e-mail.
     </p>
   </main>
 
   <!-- Page logic -->
   <script type="module">
-    // Używamy globalnego window.auth (z /src/js/auth.js)
     const $ = (s, r=document) => r.querySelector(s);
 
     const fullName = $('#fullName');
@@ -112,6 +111,8 @@
     const pass2El  = $('#password2');
     const termsEl  = $('#terms');
     const submit   = $('#submitBtn');
+    const googleBtn = $('#btn-google');
+    const googleText = $('#btn-google-text');
 
     // Toast (spójny z auth.js)
     function toast(msg, type='info'){
@@ -130,13 +131,13 @@
     function friendlyError(errMsg=''){
       const m = (errMsg||'').toLowerCase();
       if (m.includes('user already registered')) return 'Ten email jest już zarejestrowany.';
-      if (m.includes('invalid email')) return 'Podaj poprawny adres e‑mail.';
+      if (m.includes('invalid email')) return 'Podaj poprawny adres e-mail.';
       if (m.includes('password')) return 'Hasło musi mieć co najmniej 6 znaków.';
       if (m.includes('rate limit')) return 'Za dużo prób. Spróbuj ponownie za chwilę.';
       return 'Nie udało się utworzyć konta. Spróbuj ponownie.';
     }
 
-    // Obsługa ?returnTo= (gdzie trafić po potwierdzeniu e‑mail)
+    // Obsługa ?returnTo= (gdzie trafić po potwierdzeniu e-mail)
     function getReturnTo(){
       const p = new URLSearchParams(location.search);
       return p.get('returnTo') || '/pages/profile.html';
@@ -164,26 +165,34 @@
     }
     passEl?.addEventListener('input', ()=> paintStrength(score(passEl.value)));
 
-    // OAuth — Google
-    $('#btn-google')?.addEventListener('click', async () => {
+    // OAuth — Google (loading state)
+    googleBtn?.addEventListener('click', async () => {
       try {
+        googleBtn.disabled = true;
+        googleText.textContent = 'Łączenie…';
         const redirectTo = location.origin + getReturnTo();
         await window.auth.signInWithProvider('google', { redirectTo });
       } catch (e) {
         console.error(e); toast('Nie udało się rozpocząć logowania Google.', 'error');
+      } finally {
+        googleBtn.disabled = false;
+        googleText.textContent = 'Kontynuuj przez Google';
       }
     });
 
-    // Rejestracja
+    let submitting = false;
+    // Rejestracja (blokада podwójного submitu)
     $('#register-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (submitting) return;
 
       if (!fullName.value.trim()) { toast('Podaj imię i nazwisko.', 'error'); return; }
-      if (!emailEl.value.trim())  { toast('Podaj adres e‑mail.', 'error'); return; }
+      if (!emailEl.value.trim())  { toast('Podaj adres e-mail.', 'error'); return; }
       if (passEl.value.length < 6){ toast('Hasło musi mieć co najmniej 6 znaków.', 'error'); return; }
       if (passEl.value !== pass2El.value) { toast('Hasła nie są identyczne.', 'error'); return; }
       if (!termsEl.checked) { toast('Zaakceptuj politykę prywatności.', 'error'); return; }
 
+      submitting = true;
       submit.disabled = true;
       submit.classList.add('opacity-70','cursor-not-allowed');
       submit.textContent = 'Tworzenie konta…';
@@ -192,8 +201,9 @@
         const { supabase } = window.auth;
         const client = supabase();
 
-        const redirectTo = location.origin + '/pages/login.html?returnTo=' + encodeURIComponent(getReturnTo());
-        const { data, error } = await client.auth.signUp({
+        // po kliknięciu linku potwierdzającego wrócimy na login z flagą confirmed=1
+        const redirectTo = location.origin + '/pages/login.html?confirmed=1&returnTo=' + encodeURIComponent(getReturnTo());
+        const { error } = await client.auth.signUp({
           email: emailEl.value.trim(),
           password: passEl.value,
           options: {
@@ -203,16 +213,15 @@
         });
         if (error) throw error;
 
-        // (opcjonalnie) tworzymy wpis w profiles po stronie serwera/Webhookiem.
         toast('Sprawdź skrzynkę — wysłaliśmy link potwierdzający ✉️', 'ok');
 
-        // Po rejestracji zostawiamy na tej stronie; user kliknie link z maila.
-        // Możesz też przekierować od razu na login:
+        // Można też od razu przenieść na login:
         setTimeout(()=> { location.href = '/pages/login.html?registered=1&returnTo=' + encodeURIComponent(getReturnTo()); }, 1200);
       } catch (e) {
         console.error(e);
         toast(friendlyError(e?.message || ''), 'error');
       } finally {
+        submitting = false;
         submit.disabled = false;
         submit.classList.remove('opacity-70','cursor-not-allowed');
         submit.textContent = 'Utwórz konto';

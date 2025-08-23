@@ -1,4 +1,3 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -24,16 +23,23 @@ export const metadata: Metadata = {
     title: "HappyDate - Magiczne prezenty na każdą okazję",
     description:
       "Zaskocz bliskich wyjątkowymi prezentami i nie zapomnij o ważnych chwilach!",
-    images: [{ url: "/public/img/11.png" }],
+    images: [{ url: "/img/11.png" }], // ✅ без /public
   },
   icons: [
-    { rel: "icon", url: "/public/img/11.png", sizes: "32x32", type: "image/png" },
+    { rel: "icon", url: "/img/11.png", sizes: "32x32", type: "image/png" }, // ✅ без /public
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="pl" className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors">
+    <html
+      lang="pl"
+      className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors"
+    >
       <body className="overflow-x-hidden">{children}</body>
     </html>
   );

@@ -13,8 +13,8 @@
   <!-- Tailwind (MVP) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Global auth (udostępnia window.auth + steruje headerem) -->
-  <script type="module" src="/src/js/auth.js"></script>
+  <!-- Global auth (window.auth) -->
+  <script type="module" src="/js/auth.js"></script>
 
   <style>
     @media (prefers-reduced-motion: reduce){.animate-bounce,.animate-ping,.animate-pulse{animation:none!important}}
@@ -25,7 +25,7 @@
   <!-- Header -->
   <header class="bg-gradient-to-r from-pink-500 to-rose-500 text-white py-4 shadow">
     <div class="max-w-6xl mx-auto px-4 flex items-center justify-between">
-      <a href="/index.html" class="flex items-center gap-2 font-bold text-lg">
+      <a href="/" class="flex items-center gap-2 font-bold text-lg">
         <span class="text-2xl">🎁</span> HappyDate
       </a>
       <nav class="flex items-center gap-3">
@@ -66,7 +66,7 @@
           <input id="lastName" type="text" class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-gray-900" placeholder="np. Kowalska" />
         </div>
         <div>
-          <label class="block text-sm font-medium">E‑mail</label>
+          <label class="block text-sm font-medium">E-mail</label>
           <input id="email" type="email" class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-gray-900" disabled />
         </div>
         <div>
@@ -217,7 +217,7 @@
         const { error } = await sb.from('profiles').upsert(payload, { onConflict: 'id' });
         if (error) throw error;
         toast('Zapisano profil ✔', 'ok');
-        updateUserUI(); // zaktualizuj avatar/menu jeśli zmienił się email itp.
+        updateUserUI();
       }catch(e){ console.error(e); toast('Nie udało się zapisać profilu.', 'error'); }
       finally{ saveBtn.disabled = false; saveBtn.classList.remove('opacity-70','cursor-not-allowed'); saveBtn.textContent = 'Zapisz profil'; }
     }
@@ -274,16 +274,14 @@
         const ch = sb.channel('events-profile-sync')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `uid=eq.${user.id}` }, () => loadEvents())
           .subscribe();
-        // zapamiętać kanał jeśli chcesz go zamknąć przy opuszczeniu strony
       }catch(e){ console.warn('Realtime disabled', e); }
     }
 
     // --- boot
     (async () => {
       user = await requireAuth({ redirect: true });
-      if (!user) return; // auth.js przekieruje na login
+      if (!user) return;
 
-      // wstępny avatar (z auth metadata lub dicebear)
       const metaPhoto = user.user_metadata?.avatar_url || null;
       if (metaPhoto) avatarPreview.src = metaPhoto;
       emailEl.value = user.email || '';
