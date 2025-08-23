@@ -1,25 +1,34 @@
 // middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isProd } from "@/lib/site";
 
-/**
- * Для усіх середовищ, крім production, забороняємо індексацію.
- * Це захищає прев’ю-домен *.vercel.app від випадкового індексування.
- */
-export function middleware(_req: NextRequest) {
-  const res = NextResponse.next();
-  if (!isProd) {
-    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+export function middleware(req: NextRequest) {
+  const url = req.nextUrl.clone();
+
+  // захищені маршрути
+  const protectedPaths = ["/dashboard"];
+
+  const isProtected = protectedPaths.some((path) =>
+    url.pathname.startsWith(path)
+  );
+
+  if (!isProtected) {
+    return NextResponse.next();
   }
-  return res;
+
+  // Supabase зберігає токени в cookies з префіксом sb-
+  const hasSession = req.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
+
+  if (!hasSession) {
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
-/**
- * Не застосовуємо middleware до статичних ресурсів і службових файлів.
- */
 export const config = {
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|img|audio).*)",
-  ],
+  matcher: ["/dashboard/:path*"], // застосовується до всіх підшляхів dashboard
 };

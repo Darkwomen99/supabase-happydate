@@ -1,15 +1,13 @@
+// src/app/login/page.tsx
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
-  const qp = useSearchParams();
-  const returnTo = qp.get("returnTo") || "/dashboard";
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -17,17 +15,23 @@ export default function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErr(null); setLoading(true);
+    setErr(null);
+    setLoading(true);
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return setErr(error.message);
-    router.push(returnTo);
+
+    if (error) {
+      setErr(error.message);
+    } else {
+      router.push("/dashboard"); // завжди веде на dashboard
+    }
   }
 
-  async function google() {
+  async function loginGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${location.origin}${returnTo}` },
+      options: { redirectTo: `${location.origin}/dashboard` },
     });
     if (error) setErr(error.message);
   }
@@ -42,28 +46,41 @@ export default function LoginPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <input
             className="w-full px-4 py-2 rounded border"
-            type="email" placeholder="Email"
-            value={email} onChange={(e)=>setEmail(e.target.value)} required
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <input
             className="w-full px-4 py-2 rounded border"
-            type="password" placeholder="Hasło"
-            value={password} onChange={(e)=>setPassword(e.target.value)} required
+            type="password"
+            placeholder="Hasło"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
           />
           <button
             className="w-full py-2 rounded bg-blue-600 text-white font-semibold disabled:opacity-60"
-            type="submit" disabled={loading}
+            disabled={loading}
+            type="submit"
           >
-            {loading ? "Logowanie…" : "Zaloguj się"}
+            {loading ? "Logowanie..." : "Zaloguj się"}
           </button>
         </form>
 
-        <button onClick={google} className="mt-4 w-full py-2 rounded bg-red-500 text-white">
+        <button
+          onClick={loginGoogle}
+          className="mt-4 w-full py-2 rounded bg-red-500 text-white"
+        >
           Google
         </button>
 
-        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-300">
-          Nie masz konta? <Link href="/register" className="text-blue-600 underline">Rejestracja</Link>
+        <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-300">
+          Nie masz konta?{" "}
+          <Link href="/register" className="text-blue-600 underline">
+            Rejestracja
+          </Link>
         </p>
       </div>
     </main>
