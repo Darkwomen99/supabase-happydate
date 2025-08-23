@@ -1,5 +1,5 @@
 // public/env.js — HappyDate config (widoczne tylko w przeglądarce, publiczny anon key)
 window.ENV = {
   SUPABASE_URL: "https://ofnfodcydoxlcbefjwvt.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_B62l_kxN1N1bimJbHv4XxQ_VANwPt6N"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mbmZvZGN5ZG94bGNiZWZqd3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4ODc3MzAsImV4cCI6MjA3MTQ2MzczMH0.kNctpQcdYWej8BSutbiV3d8NESyZSfgBiE1C8MzM3Wo"
 };
