@@ -1,32 +1,39 @@
-// src/js/supabaseClient.js
-import { createClient } from '@supabase/supabase-js';
+// /src/js/supabaseClient.js — HappyDate
+import { createClient } from "@supabase/supabase-js";
 
-// Спочатку пробуємо взяти змінні з env.js (fallback для браузера/статичних сторінок)
-let ENV = {};
-try {
-  // Використовуємо відносний шлях (коректно для білду Next.js)
-  ENV = (await import('../api/env.js')).default || {};
-} catch {
-  // якщо env.js відсутній або SSR-контекст
-  ENV = {};
+// ─── Збір ENV ─────────────────────────────────────────────
+let SUPABASE_URL = "";
+let SUPABASE_ANON_KEY = "";
+
+// 1) Найперше: беремо із process.env (Next.js на Vercel)
+if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 }
 
-// Збираємо ключі Supabase (спочатку з процеса, потім з env.js, потім з window.env)
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  ENV.SUPABASE_URL ||
-  (typeof window !== 'undefined' && window.env?.SUPABASE_URL);
+// 2) Якщо це браузер і є window.env (з /public/js/env.js)
+else if (typeof window !== "undefined" && window.env) {
+  SUPABASE_URL = window.env.SUPABASE_URL;
+  SUPABASE_ANON_KEY = window.env.SUPABASE_ANON_KEY;
+}
 
-const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  ENV.SUPABASE_ANON_KEY ||
-  (typeof window !== 'undefined' && window.env?.SUPABASE_ANON_KEY);
+// 3) Якщо є локальний файл src/api/env.js (fallback для dev)
+else {
+  try {
+    const localEnv = (await import("../api/env.js")).default;
+    SUPABASE_URL = localEnv.SUPABASE_URL;
+    SUPABASE_ANON_KEY = localEnv.SUPABASE_ANON_KEY;
+  } catch {
+    console.warn("[supabaseClient] env.js not found, fallback skipped");
+  }
+}
 
+// Перевірка
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('[supabaseClient] Missing SUPABASE_URL / SUPABASE_ANON_KEY');
+  console.error("[supabaseClient] ❌ Missing SUPABASE_URL / SUPABASE_ANON_KEY");
 }
 
-// Єдиний екземпляр клієнта
+// ─── Створюємо клієнт ─────────────────────────────────────
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
