@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect } from "react";
 
 export default function Home() {
@@ -36,17 +37,20 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <a
+              {/* внутрішній роут — Link */}
+              <Link
                 href="/"
                 id="logo-link"
                 className="text-2xl font-bold hover:underline text-white"
                 aria-label="HappyDate - prezentowy asystent"
               >
                 🎁 HappyDate
-              </a>
+              </Link>
+
               <span className="hidden md:inline ml-2 text-base italic text-white/90">
                 Twój ciepły asystent prezentowy
               </span>
+
               <button
                 id="audioBtn"
                 title="Posłuchaj nas"
@@ -72,9 +76,15 @@ export default function Home() {
           <nav className="hidden sm:block mt-4 text-white" id="desktop-menu" aria-label="Menu desktop">
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div className="flex gap-4 md:gap-6 items-center">
-                <a href="/" className="px-1 py-0.5 rounded bg-white/20 underline font-semibold">
+                {/* внутрішній роут — Link */}
+                <Link
+                  href="/"
+                  className="px-1 py-0.5 rounded bg-white/20 underline font-semibold focus:bg-white/30 transition"
+                >
                   Strona główna
-                </a>
+                </Link>
+
+                {/* зовнішні до public/pages — лишаємо <a> */}
                 <a href="/pages/services.html" className="px-1 py-0.5 rounded hover:bg-white/20 transition">
                   Usługi
                 </a>
@@ -181,7 +191,7 @@ export default function Home() {
             <div>
               <h4 className="text-xl font-bold mb-2 flex items-center gap-2">🚚 Wygodna dostawa na czas</h4>
               <p className="text-gray-700 dark:text-gray-300">
-                Prezent dotrze dokładnie wtedy, kiedy powinien — bez stresu.
+                Prezent dotrze dokładnie wtedy, kiedy powinien — без stresu.
               </p>
             </div>
             <div>
@@ -201,7 +211,7 @@ export default function Home() {
           <div className="grid gap-6 md:grid-cols-3">
             {[
               { text: "🎁 “Dzięki HappyDate nie zapomniałem o urodzinach żony. Prezent był strzałem w dziesiątkę!”", author: "— Adam, Warszawa" },
-              { text: "💌 “Zgodziłam się z siostrą po latach — prezent z HappyDate to był przełom!”", author: "— Kasia, Gdańsk" },
+              { text: "💌 “Zgodziłam się z siostrą по latach — prezent z HappyDate to był przełom!”", author: "— Kasia, Gdańsk" },
               { text: "🌟 “Dostałam kwiaty i voucher w dzień Mamy — dokładnie tak, jak marzyłam.”", author: "— Ola, Kraków" },
             ].map((r, i) => (
               <div key={i} className="bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow">
@@ -217,6 +227,7 @@ export default function Home() {
       <section className="bg-gray-100 dark:bg-gray-800 py-20 pb-12">
         <div className="max-w-6xl mx-auto px-4">
           <h3 className="text-2xl font-semibold text-center mb-12">🎁 Przykładowe prezenty</h3>
+        {/* зображення мають лежати у public/img */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {[
               { src: "/img/money.png", label: "Zestaw SPA + kartka „Kocham Cię”" },
@@ -226,7 +237,12 @@ export default function Home() {
             ].map((g, i) => (
               <div key={i} className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow text-center group hover:shadow-xl transition">
                 <div className="relative w-full h-40 mb-3 overflow-hidden rounded">
-                  <Image src={g.src} alt={g.label} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <Image
+                    src={g.src}
+                    alt={g.label}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
                 <p className="font-medium">{g.label}</p>
               </div>
