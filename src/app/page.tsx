@@ -9,7 +9,7 @@ export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const wowRef = useRef<HTMLDivElement | null>(null);
 
-  // Легка анімація появи
+  // Легка анімація появи блоку "Jak to działa?"
   useEffect(() => {
     const el = wowRef.current;
     if (!el) return;
@@ -29,28 +29,31 @@ export default function Home() {
     return () => io.disconnect();
   }, []);
 
-  const NavLinks = (
-    <>
-      <Link href="/" className="px-2 py-1 rounded hover:bg-white/20 transition">
-        Strona główna
-      </Link>
-      <Link href="/services" className="px-2 py-1 rounded hover:bg-white/20 transition">
-        Usługi
-      </Link>
-      <Link href="/dashboard" className="px-2 py-1 rounded hover:bg-white/20 transition">
-        Moje wydarzenia
-      </Link>
-      <Link href="/partnerstwo" className="px-2 py-1 rounded hover:bg-white/20 transition">
-        Partnerstwo
-      </Link>
-      <Link href="/about" className="px-2 py-1 rounded hover:bg-white/20 transition">
-        O nas
-      </Link>
-      <Link href="/reviews" className="px-2 py-1 rounded hover:bg-white/20 transition">
-        Opinie
-      </Link>
-    </>
-  );
+  // Посилання навігації (використовується і в десктопі, і в мобільному меню)
+  function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+    return (
+      <>
+        <Link href="/" className="px-2 py-1 rounded hover:bg-white/20 transition" onClick={onNavigate}>
+          Strona główna
+        </Link>
+        <Link href="/services" className="px-2 py-1 rounded hover:bg-white/20 transition" onClick={onNavigate}>
+          Usługi
+        </Link>
+        <Link href="/dashboard" className="px-2 py-1 rounded hover:bg-white/20 transition" onClick={onNavigate}>
+          Moje wydarzenia
+        </Link>
+        <Link href="/partnerstwo" className="px-2 py-1 rounded hover:bg-white/20 transition" onClick={onNavigate}>
+          Partnerstwo
+        </Link>
+        <Link href="/about" className="px-2 py-1 rounded hover:bg-white/20 transition" onClick={onNavigate}>
+          O nas
+        </Link>
+        <Link href="/reviews" className="px-2 py-1 rounded hover:bg-white/20 transition" onClick={onNavigate}>
+          Opinie
+        </Link>
+      </>
+    );
+  }
 
   return (
     <>
@@ -105,7 +108,9 @@ export default function Home() {
           {/* Desktop nav */}
           <nav className="hidden sm:block mt-4 text-white" aria-label="Menu desktop">
             <div className="flex justify-between items-center flex-wrap gap-4">
-              <div className="flex gap-4 md:gap-6 items-center">{NavLinks}</div>
+              <div className="flex gap-4 md:gap-6 items-center">
+                <NavLinks />
+              </div>
             </div>
           </nav>
 
@@ -115,7 +120,9 @@ export default function Home() {
               className="sm:hidden mt-3 text-white bg-white/10 rounded-xl p-3 backdrop-blur-md"
               aria-label="Menu mobilne"
             >
-              <div className="flex flex-col gap-2">{NavLinks}</div>
+              <div className="flex flex-col gap-2">
+                <NavLinks onNavigate={() => setMobileOpen(false)} />
+              </div>
             </nav>
           )}
         </div>
@@ -186,7 +193,9 @@ export default function Home() {
             </div>
             <div>
               <h4 className="text-xl font-bold mb-2 flex items-center gap-2">🔐 Anonimowość i bezpieczeństwo</h4>
-              <p className="text-gray-700 dark:text-gray-300">Twoje dane są bezpieczne. Gwarantujemy pełną anonimowość.</p>
+              <p className="text-gray-700 dark:text-gray-300">
+                Twoje dane są bezpieczne. Gwarantujemy pełną anonimowość.
+              </p>
             </div>
             <div>
               <h4 className="text-xl font-bold mb-2 flex items-center gap-2">🚚 Wygodna dostawa na czas</h4>
@@ -216,7 +225,10 @@ export default function Home() {
               { src: "/img/11.png", label: "Box z niespodzianką + voucher" },
               { src: "/img/money.png", label: "Voucher na masaż i kolację" },
             ].map((g, i) => (
-              <div key={i} className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow text-center group hover:shadow-xl transition">
+              <div
+                key={i}
+                className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow text-center group hover:shadow-xl transition"
+              >
                 <div className="relative w-full h-40 mb-3 overflow-hidden rounded">
                   <Image
                     src={g.src}
