@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pl" class="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Logowanie — HappyDate</title>
+
+  <!-- SEO: strony auth nie indeksujemy -->
+  <meta name="robots" content="noindex,follow" />
+  <link rel="canonical" href="https://www.happydate.pl/pages/login.html" />
+
+  <!-- Tailwind (MVP) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Global auth layer (window.auth) -->
+  <script type="module" src="/src/js/auth.js"></script>
+
+  <style>
+    @media (prefers-reduced-motion: reduce){.animate-bounce,.animate-ping,.animate-pulse{animation:none!important}}
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+
+  <main class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8">
+    <header class="text-center mb-6">
+      <a href="/index.html" class="inline-flex items-center gap-2 text-blue-600 hover:underline">
+        <span class="text-2xl">🎁</span> <span class="font-bold">HappyDate</span>
+      </a>
+      <h1 class="text-2xl font-bold mt-2">Zaloguj się</h1>
+      <p class="text-sm text-gray-600 dark:text-gray-300">Wróć do swojego kalendarza i prezentów</p>
+    </header>
+
+    <!-- OAuth -->
+    <div class="space-y-3">
+      <button id="btn-google" type="button"
+        class="w-full inline-flex items-center justify-center gap-2 border rounded-xl py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" />
+        <span>Zaloguj przez Google</span>
+      </button>
+      <!-- Dodatkowi dostawcy (Apple, GitHub) — łatwo dodać:
+      <button id="btn-apple" type="button" class="w-full inline-flex items-center justify-center gap-2 border rounded-xl py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+        <span class="text-xl"></span> <span>Zaloguj przez Apple</span>
+      </button>
+      -->
+    </div>
+
+    <div class="relative my-6">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t dark:border-gray-700"></div></div>
+      <div class="relative flex justify-center text-sm"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500">albo e‑mail</span></div>
+    </div>
+
+    <!-- Email/password -->
+    <form id="login-form" class="space-y-4" novalidate>
+      <label class="block text-sm font-medium">Email
+        <input id="email" type="email" required autocomplete="email"
+               class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-gray-900" placeholder="np. anna@example.com" />
+      </label>
+
+      <label class="block text-sm font-medium">Hasło
+        <div class="mt-1 relative">
+          <input id="password" type="password" required autocomplete="current-password"
+                 class="w-full rounded-xl border px-3 py-2 pr-10 dark:bg-gray-900" placeholder="••••••••" />
+          <button id="togglePass" type="button" class="absolute inset-y-0 right-2 px-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Pokaż/ukryj hasło">👁️</button>
+        </div>
+      </label>
+
+      <button id="submitBtn" type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">
+        Zaloguj się
+      </button>
+
+      <div class="flex items-center justify-between text-sm">
+        <a href="/pages/reset-password.html" class="text-blue-600 hover:underline">Nie pamiętasz hasła?</a>
+        <a href="/pages/register.html" class="text-blue-600 hover:underline">Załóż konto</a>
+      </div>
+    </form>
+
+    <!-- Info -->
+    <p class="mt-6 text-xs text-gray-500 text-center">
+      Logując się, akceptujesz <a href="/pages/privacy.html" class="underline">politykę prywatności</a>.
+    </p>
+  </main>
+
+  <!-- Page logic -->
+  <script type="module">
+    // Używamy globalnego window.auth (z /src/js/auth.js)
+    const $ = (s, r=document) => r.querySelector(s);
+    const emailEl = $('#email');
+    const passEl  = $('#password');
+    const submit  = $('#submitBtn');
+
+    // Prosty toast bez zależności (spójny z auth.js)
+    function toast(msg, type='info'){
+      try {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        el.setAttribute('role','status'); el.setAttribute('aria-live','polite');
+        el.style.cssText = "position:fixed;top:16px;right:16px;z-index:9999;padding:10px 12px;border-radius:12px;color:#fff;"
+          + `background:${type==='error'?'#dc2626':type==='ok'?'#16a34a':'#111827'};box-shadow:0 10px 25px rgba(0,0,0,.15);font-weight:600`;
+        document.body.appendChild(el);
+        setTimeout(()=> el.remove(), 2400);
+      } catch {}
+    }
+
+    // Mapowanie popularnych błędów Supabase na przyjazne komunikaty PL
+    function friendlyError(errMsg=''){
+      const m = (errMsg||'').toLowerCase();
+      if (m.includes('invalid login credentials')) return 'Nieprawidłowy email lub hasło.';
+      if (m.includes('email not confirmed')) return 'Potwierdź adres e‑mail, aby się zalogować.';
+      if (m.includes('too many requests')) return 'Za dużo prób. Spróbuj ponownie za chwilę.';
+      if (m.includes('network')) return 'Błąd sieci. Sprawdź połączenie i spróbuj ponownie.';
+      return 'Nie udało się zalogować. Spróbuj ponownie.';
+    }
+
+    // Obsługa ?returnTo=
+    function getReturnTo(){
+      const p = new URLSearchParams(location.search);
+      return p.get('returnTo') || '/pages/dashboard.html';
+    }
+
+    // Toggle hasła
+    $('#togglePass')?.addEventListener('click', () => {
+      passEl.type = passEl.type === 'password' ? 'text' : 'password';
+    });
+
+    // OAuth — Google
+    $('#btn-google')?.addEventListener('click', async () => {
+      try {
+        const redirectTo = location.origin + getReturnTo();
+        await window.auth.signInWithProvider('google', { redirectTo });
+      } catch (e) {
+        console.error(e); toast('Nie udało się rozpocząć logowania Google.', 'error');
+      }
+    });
+
+    // Formularz e‑mail/hasło
+    $('#login-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!emailEl.value || !passEl.value) return;
+
+      submit.disabled = true;
+      submit.classList.add('opacity-70','cursor-not-allowed');
+      submit.textContent = 'Logowanie…';
+
+      try {
+        const { supabase } = window.auth;
+        const client = supabase();
+        const { error } = await client.auth.signInWithPassword({
+          email: emailEl.value.trim(),
+          password: passEl.value
+        });
+        if (error) throw error;
+
+        toast('Zalogowano pomyślnie ✔', 'ok');
+
+        // Jeśli na URL jest returnTo — auth.js też to potrafi obsłużyć po zdarzeniu,
+        // ale tu robimy szybkie przekierowanie od razu.
+        const rt = getReturnTo();
+        setTimeout(()=> { location.href = rt; }, 500);
+      } catch (e) {
+        console.error(e);
+        toast(friendlyError(e?.message || ''), 'error');
+      } finally {
+        submit.disabled = false;
+        submit.classList.remove('opacity-70','cursor-not-allowed');
+        submit.textContent = 'Zaloguj się';
+      }
+    });
+
+    // Jeśli użytkownik już zalogowany — przekieruj od razu
+    document.addEventListener('happydate:authReady', async () => {
+      const user = await window.auth.getUser();
+      if (user) {
+        const rt = getReturnTo();
+        location.replace(rt);
+      }
+    });
+  </script>
+</body>
+</html>

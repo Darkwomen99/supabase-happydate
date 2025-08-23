@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pl" class="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Rejestracja — HappyDate</title>
+
+  <!-- SEO: strony auth nie indeksujemy -->
+  <meta name="robots" content="noindex,follow" />
+  <link rel="canonical" href="https://www.happydate.pl/pages/register.html" />
+
+  <!-- Tailwind (MVP) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Global auth layer (window.auth) -->
+  <script type="module" src="/src/js/auth.js"></script>
+
+  <style>
+    @media (prefers-reduced-motion: reduce){.animate-bounce,.animate-ping,.animate-pulse{animation:none!important}}
+    .strength { height: 6px; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+
+  <main class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8">
+    <header class="text-center mb-6">
+      <a href="/index.html" class="inline-flex items-center gap-2 text-blue-600 hover:underline">
+        <span class="text-2xl">🎁</span> <span class="font-bold">HappyDate</span>
+      </a>
+      <h1 class="text-2xl font-bold mt-2">Załóż konto</h1>
+      <p class="text-sm text-gray-600 dark:text-gray-300">Dołącz i planuj prezenty z AI</p>
+    </header>
+
+    <!-- OAuth -->
+    <div class="space-y-3">
+      <button id="btn-google" type="button"
+        class="w-full inline-flex items-center justify-center gap-2 border rounded-xl py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" />
+        <span>Kontynuuj przez Google</span>
+      </button>
+    </div>
+
+    <div class="relative my-6">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t dark:border-gray-700"></div></div>
+      <div class="relative flex justify-center text-sm"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500">albo e‑mail</span></div>
+    </div>
+
+    <!-- Email/password -->
+    <form id="register-form" class="space-y-4" novalidate>
+      <label class="block text-sm font-medium">Imię i nazwisko
+        <input id="fullName" type="text" required autocomplete="name"
+               class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-gray-900" placeholder="np. Anna Kowalska" />
+      </label>
+
+      <label class="block text-sm font-medium">Email
+        <input id="email" type="email" required autocomplete="username"
+               class="mt-1 w-full rounded-xl border px-3 py-2 dark:bg-gray-900" placeholder="np. anna@example.com" />
+      </label>
+
+      <div>
+        <label class="block text-sm font-medium">Hasło
+          <div class="mt-1 relative">
+            <input id="password" type="password" required autocomplete="new-password"
+                   class="w-full rounded-xl border px-3 py-2 pr-10 dark:bg-gray-900" placeholder="Minimum 6 znaków" />
+            <button id="togglePass" type="button" class="absolute inset-y-0 right-2 px-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Pokaż/ukryj hasło">👁️</button>
+          </div>
+        </label>
+        <!-- pasek siły hasła -->
+        <div class="mt-2 grid grid-cols-4 gap-1">
+          <div id="s1" class="strength bg-gray-300 dark:bg-gray-700"></div>
+          <div id="s2" class="strength bg-gray-300 dark:bg-gray-700"></div>
+          <div id="s3" class="strength bg-gray-300 dark:bg-gray-700"></div>
+          <div id="s4" class="strength bg-gray-300 dark:bg-gray-700"></div>
+        </div>
+        <p id="strengthLabel" class="text-xs mt-1 text-gray-500">Siła hasła: —</p>
+      </div>
+
+      <label class="block text-sm font-medium">Powtórz hasło
+        <div class="mt-1 relative">
+          <input id="password2" type="password" required autocomplete="new-password"
+                 class="w-full rounded-xl border px-3 py-2 pr-10 dark:bg-gray-900" placeholder="Powtórz hasło" />
+          <button id="togglePass2" type="button" class="absolute inset-y-0 right-2 px-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Pokaż/ukryj hasło">👁️</button>
+        </div>
+      </label>
+
+      <label class="flex items-start gap-2 text-sm">
+        <input id="terms" type="checkbox" class="mt-1" />
+        <span>Akceptuję <a href="/pages/privacy.html" class="underline" target="_blank" rel="noopener">politykę prywatności</a>.</span>
+      </label>
+
+      <button id="submitBtn" type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">
+        Utwórz konto
+      </button>
+
+      <p class="text-sm text-center">Masz już konto? <a href="/pages/login.html" class="text-blue-600 hover:underline">Zaloguj się</a></p>
+    </form>
+
+    <p class="mt-6 text-xs text-gray-500 text-center">
+      Po rejestracji wyślemy link potwierdzający e‑mail.
+    </p>
+  </main>
+
+  <!-- Page logic -->
+  <script type="module">
+    // Używamy globalnego window.auth (z /src/js/auth.js)
+    const $ = (s, r=document) => r.querySelector(s);
+
+    const fullName = $('#fullName');
+    const emailEl  = $('#email');
+    const passEl   = $('#password');
+    const pass2El  = $('#password2');
+    const termsEl  = $('#terms');
+    const submit   = $('#submitBtn');
+
+    // Toast (spójny z auth.js)
+    function toast(msg, type='info'){
+      try {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        el.setAttribute('role','status'); el.setAttribute('aria-live','polite');
+        el.style.cssText = "position:fixed;top:16px;right:16px;z-index:9999;padding:10px 12px;border-radius:12px;color:#fff;"
+          + `background:${type==='error'?'#dc2626':type==='ok'?'#16a34a':'#111827'};box-shadow:0 10px 25px rgba(0,0,0,.15);font-weight:600`;
+        document.body.appendChild(el);
+        setTimeout(()=> el.remove(), 2600);
+      } catch {}
+    }
+
+    // Błędy Supabase → przyjazne PL
+    function friendlyError(errMsg=''){
+      const m = (errMsg||'').toLowerCase();
+      if (m.includes('user already registered')) return 'Ten email jest już zarejestrowany.';
+      if (m.includes('invalid email')) return 'Podaj poprawny adres e‑mail.';
+      if (m.includes('password')) return 'Hasło musi mieć co najmniej 6 znaków.';
+      if (m.includes('rate limit')) return 'Za dużo prób. Spróbuj ponownie za chwilę.';
+      return 'Nie udało się utworzyć konta. Spróbuj ponownie.';
+    }
+
+    // Obsługa ?returnTo= (gdzie trafić po potwierdzeniu e‑mail)
+    function getReturnTo(){
+      const p = new URLSearchParams(location.search);
+      return p.get('returnTo') || '/pages/profile.html';
+    }
+
+    // Toggle haseł
+    $('#togglePass')?.addEventListener('click', () => { passEl.type  = passEl.type  === 'password' ? 'text' : 'password'; });
+    $('#togglePass2')?.addEventListener('click', () => { pass2El.type = pass2El.type === 'password' ? 'text' : 'password'; });
+
+    // Pasek siły hasła
+    const bars = [$('#s1'),$('#s2'),$('#s3'),$('#s4')];
+    const label= $('#strengthLabel');
+    function score(p=''){
+      let s=0;
+      if (p.length >= 6) s++;
+      if (/[A-ZĄĆĘŁŃÓŚŻŹ]/.test(p)) s++;
+      if (/[0-9]/.test(p)) s++;
+      if (/[^A-Za-z0-9]/.test(p)) s++;
+      return s;
+    }
+    function paintStrength(n){
+      const colors = ['#d1d5db','#f59e0b','#10b981','#16a34a']; // szary → żółty → zielony
+      bars.forEach((b,i)=>{ b.style.background = i < n ? colors[Math.max(0,n-1)] : '#d1d5db'; });
+      label.textContent = 'Siła hasła: ' + (n<=1?'słabe':n===2?'średnie':n===3?'dobre':'bardzo dobre');
+    }
+    passEl?.addEventListener('input', ()=> paintStrength(score(passEl.value)));
+
+    // OAuth — Google
+    $('#btn-google')?.addEventListener('click', async () => {
+      try {
+        const redirectTo = location.origin + getReturnTo();
+        await window.auth.signInWithProvider('google', { redirectTo });
+      } catch (e) {
+        console.error(e); toast('Nie udało się rozpocząć logowania Google.', 'error');
+      }
+    });
+
+    // Rejestracja
+    $('#register-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!fullName.value.trim()) { toast('Podaj imię i nazwisko.', 'error'); return; }
+      if (!emailEl.value.trim())  { toast('Podaj adres e‑mail.', 'error'); return; }
+      if (passEl.value.length < 6){ toast('Hasło musi mieć co najmniej 6 znaków.', 'error'); return; }
+      if (passEl.value !== pass2El.value) { toast('Hasła nie są identyczne.', 'error'); return; }
+      if (!termsEl.checked) { toast('Zaakceptuj politykę prywatności.', 'error'); return; }
+
+      submit.disabled = true;
+      submit.classList.add('opacity-70','cursor-not-allowed');
+      submit.textContent = 'Tworzenie konta…';
+
+      try {
+        const { supabase } = window.auth;
+        const client = supabase();
+
+        const redirectTo = location.origin + '/pages/login.html?returnTo=' + encodeURIComponent(getReturnTo());
+        const { data, error } = await client.auth.signUp({
+          email: emailEl.value.trim(),
+          password: passEl.value,
+          options: {
+            data: { full_name: fullName.value.trim() },
+            emailRedirectTo: redirectTo
+          }
+        });
+        if (error) throw error;
+
+        // (opcjonalnie) tworzymy wpis w profiles po stronie serwera/Webhookiem.
+        toast('Sprawdź skrzynkę — wysłaliśmy link potwierdzający ✉️', 'ok');
+
+        // Po rejestracji zostawiamy na tej stronie; user kliknie link z maila.
+        // Możesz też przekierować od razu na login:
+        setTimeout(()=> { location.href = '/pages/login.html?registered=1&returnTo=' + encodeURIComponent(getReturnTo()); }, 1200);
+      } catch (e) {
+        console.error(e);
+        toast(friendlyError(e?.message || ''), 'error');
+      } finally {
+        submit.disabled = false;
+        submit.classList.remove('opacity-70','cursor-not-allowed');
+        submit.textContent = 'Utwórz konto';
+      }
+    });
+
+    // Jeśli użytkownik już zalogowany — przekieruj
+    document.addEventListener('happydate:authReady', async () => {
+      const user = await window.auth.getUser();
+      if (user) {
+        const rt = getReturnTo();
+        location.replace(rt);
+      }
+    });
+  </script>
+</body>
+</html>
