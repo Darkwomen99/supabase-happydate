@@ -11,10 +11,10 @@ if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANO
   SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 }
 
-// 2) Якщо це браузер і є window.env (з /public/js/env.js)
-else if (typeof window !== "undefined" && window.env) {
-  SUPABASE_URL = window.env.SUPABASE_URL;
-  SUPABASE_ANON_KEY = window.env.SUPABASE_ANON_KEY;
+// 2) Якщо це браузер і є window.ENV (з /public/env.js)
+else if (typeof window !== "undefined" && window.ENV) {
+  SUPABASE_URL = window.ENV.SUPABASE_URL;
+  SUPABASE_ANON_KEY = window.ENV.SUPABASE_ANON_KEY;
 }
 
 // 3) Якщо є локальний файл src/api/env.js (fallback для dev)
