@@ -4,7 +4,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClients";
 
 // Допоміжна мапа помилок Supabase → дружні повідомлення
 function humanizeError(message?: string) {
