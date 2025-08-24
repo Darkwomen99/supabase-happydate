@@ -223,7 +223,7 @@ function AudioModal({ open, onClose }: { open: boolean; onClose: () => void }) {
 function HelpPopup() {
   const [open, setOpen] = useState(false);
   return (
-    <div className="fixed bottom-6 left-6 z-50" aria-label="Szybki kontakt">
+   <div className="fixed bottom-6 left-6 z-[60]" aria-label="Szybki kontakt">
       <div className="relative">
         <button
           onClick={() => setOpen((v) => !v)}
@@ -281,7 +281,7 @@ function Chatbot() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-50" aria-label="Otwórz chatbota HappyBot">
+      <div className="fixed bottom-6 right-6 z-[60]" aria-label="Otwórz chatbota HappyBot">
         <button
           onClick={() => setOpen((v) => !v)}
           className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-300 focus:ring-2 focus:ring-blue-300"
@@ -297,7 +297,7 @@ function Chatbot() {
       {open && (
         <div
           id="chatbot-window"
-          className="fixed bottom-20 right-6 w-80 max-w-full bg-white dark:bg-gray-800 border rounded-xl shadow-2xl z-50 overflow-hidden"
+          className="fixed bottom-20 right-6 w-80 max-w-full bg-white dark:bg-gray-800 border rounded-xl shadow-2xl z-60 overflow-hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Chatbot HappyBot"
@@ -339,14 +339,29 @@ function Chatbot() {
 
 function CookiesBar() {
   const [show, setShow] = useState(false);
+
   useEffect(() => {
-    if (localStorage.getItem("happydate_cookie_consent") !== "true") setShow(true);
+    // якщо згоди ще нема — показуємо панель і додаємо відступ унизу сторінки
+    if (localStorage.getItem("happydate_cookie_consent") !== "true") {
+      setShow(true);
+      document.body.style.paddingBottom = "80px"; // підлаштуй висоту під свій банер
+    } else {
+      // на всяк випадок прибираємо відступ
+      document.body.style.paddingBottom = "";
+    }
+
+    // cleanup: повертаємо padding як був
+    return () => {
+      document.body.style.paddingBottom = "";
+    };
   }, []);
+
   if (!show) return null;
+
   return (
     <div
       id="cookieConsent"
-      className="fixed bottom-0 inset-x-0 bg-gray-800 bg-opacity-90 text-white py-4 px-6 z-50"
+      className="fixed bottom-0 inset-x-0 bg-gray-800 bg-opacity-90 text-white py-4 px-6 z-[40]"
       role="dialog"
       aria-modal="true"
       aria-label="Informacja o plikach cookies"
@@ -359,11 +374,13 @@ function CookiesBar() {
           </Link>
           .
         </p>
+
         <button
           id="acceptCookies"
           onClick={() => {
             localStorage.setItem("happydate_cookie_consent", "true");
             setShow(false);
+            document.body.style.paddingBottom = ""; // прибрати відступ після закриття
           }}
           className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-md font-semibold transition focus:ring-2 focus:ring-blue-400"
           aria-label="Akceptuję cookies"
@@ -374,6 +391,7 @@ function CookiesBar() {
     </div>
   );
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Головна сторінка
