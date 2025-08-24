@@ -1,11 +1,12 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
 
+// 🔹 ТУТ metadata (server component)
 export const metadata: Metadata = {
   title: "HappyDate - Nie zapomnij o ważnych chwilach",
   description:
     "HappyDate — Twój osobisty asystent prezentowy. Zaplanuj wyjątkowe prezenty z AI i emocjami!",
-  robots: "index, follow",
   keywords: [
     "prezenty",
     "asystent prezentowy",
@@ -16,6 +17,8 @@ export const metadata: Metadata = {
     "prezenty online",
     "HappyDate",
   ],
+  robots: { index: true, follow: true },
+  authors: [{ name: "HappyDate" }],
   alternates: { canonical: "https://www.happydate.pl/" },
   openGraph: {
     type: "website",
@@ -23,11 +26,8 @@ export const metadata: Metadata = {
     title: "HappyDate - Magiczne prezenty na każdą okazję",
     description:
       "Zaskocz bliskich wyjątkowymi prezentami i nie zapomnij o ważnych chwilach!",
-    images: [{ url: "/img/11.png" }], // ✅ без /public
+    images: [{ url: "/img/11.png" }],
   },
-  icons: [
-    { rel: "icon", url: "/img/11.png", sizes: "32x32", type: "image/png" }, // ✅ без /public
-  ],
 };
 
 export default function RootLayout({
@@ -36,11 +36,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="pl"
-      className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors"
-    >
-      <body className="overflow-x-hidden">{children}</body>
+    <html lang="pl">
+      <body className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors">
+        {children}
+      </body>
     </html>
   );
 }

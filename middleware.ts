@@ -1,6 +1,6 @@
 // middleware.ts
 import { NextResponse, type NextRequest } from 'next/server'
-import { supabaseForMiddleware } from '@/lib/supabaseClients'
+import { supabaseForMiddleware } from '@/lib/supabaseClient'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
