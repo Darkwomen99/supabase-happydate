@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rejestracja — HappyDate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/src/css/style.css" />
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-pink-100 dark:from-gray-800 dark:to-gray-900">
+  <!-- <script src="/env.local.js"></script> -->
+  <main class="w-full max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+    <h1 class="text-2xl font-bold text-center mb-2">Rejestracja</h1>
+    <p class="text-center text-sm text-gray-600 dark:text-gray-300 mb-6">Załóż konto, aby planować prezenty z AI.</p>
+
+    <form id="regForm" class="space-y-4" novalidate>
+      <label class="block">
+        <span class="text-sm font-medium">E‑mail</span>
+        <input name="email" type="email" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900" required />
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium">Hasło</span>
+        <input name="password" type="password" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900" required />
+      </label>
+      <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">Utwórz konto</button>
+    </form>
+
+    <div class="my-4 text-center">
+      <a href="/pages/login.html" class="text-blue-600 hover:underline text-sm">Masz już konto? Zaloguj się</a>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase } from '/src/js/supabaseClient.js';
+    const f = document.getElementById('regForm');
+    f.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = f.email.value.trim();
+      const password = f.password.value.trim();
+      const { error } = await supabase.auth.signUp({
+        email, password,
+        options: { emailRedirectTo: location.origin + '/pages/dashboard.html' }
+      });
+      alert(error ? ('Błąd: ' + error.message) : 'Sprawdź skrzynkę — wysłaliśmy link aktywacyjny 📩');
+    });
+  </script>
+</body>
+</html>
