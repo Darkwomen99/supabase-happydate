@@ -1,4 +1,4 @@
-// /src/js/auth.js — HappyDate Auth (Supabase v2, production‑ready)
+// /src/js/auth.js — HappyDate Auth (Supabase v2, production-ready)
 (() => {
   const EVENTS = {
     AUTH_CHANGED: "happydate:authChanged",
@@ -36,15 +36,16 @@
       if (key === "name")  el.textContent = name;
       if (key === "avatar") {
         if (el.tagName === "IMG") {
-          el.setAttribute("src", avatar || "/assets/img/default-avatar.png");
+          el.setAttribute("src", avatar || "/public/img/11.png");
           el.setAttribute("alt", name || email || "avatar");
+          el.setAttribute("referrerpolicy", "no-referrer");
         } else {
           el.style.backgroundImage = avatar ? `url(${avatar})` : "";
         }
       }
     });
 
-    // Хедер‑навігація (якщо є такі елементи)
+    // Хедер-навігація (якщо є такі елементи)
     const loginLink    = document.getElementById("login-link");
     const registerLink = document.getElementById("register-link");
     const avatarLink   = document.getElementById("user-avatar-link");
@@ -54,7 +55,11 @@
       loginLink   ?.classList.add("hidden");
       registerLink?.classList.add("hidden");
       if (avatarLink) {
-        avatarImg && (avatarImg.src = avatar || "/assets/img/default-avatar.png");
+        if (avatarImg) {
+          avatarImg.src = avatar || "/public/img/11.png";
+          avatarImg.alt = name || email || "Profil";
+          avatarImg.referrerPolicy = "no-referrer";
+        }
         avatarLink.classList.remove("hidden");
       }
     } else {
@@ -102,7 +107,7 @@
     // 2) window.ENV або /api/env
     const env = window.ENV || await fetchEnvFromApi();
     if (!env?.SUPABASE_URL || !env?.SUPABASE_ANON_KEY) {
-      console.error("[auth] Brak ENV.SUPABASE_URL/ENV.SUPABASE_ANON_KEY. Upewnij się, że masz env.js lub /api/env.");
+      console.error("[auth] Brak ENV.SUPABASE_URL/ENV.SUPABASE_ANON_KEY. Upewnij się, że masz env.js або /api/env.");
       return null;
     }
 
@@ -139,7 +144,7 @@
     } catch {}
   }
 
-  // ===== Підключення форм/кнопок даними‑атрибутами =====
+  // ===== Підключення форм/кнопок даними-атрибутами =====
   function wireForms(supabase) {
     // sign-in (email+password)
     $$('form[data-auth="sign-in"]').forEach((form) => {
@@ -178,7 +183,6 @@
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            // після підтвердження пошти користувача поверне сюди
             emailRedirectTo: location.origin + "/pages/profile.html",
             data: { lang }
           }
@@ -238,26 +242,23 @@
       });
     });
 
-    // OAuth: <button data-auth-provider="google">, <button data-auth-provider="apple">
+    // OAuth: <button data-auth-provider="google">, <button data-auth-provider="apple"> ...
     $$("[data-auth-provider]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const provider = btn.getAttribute("data-auth-provider");
         const lang     = getLang();
-        // куди повернути користувача після успіху
         const after    = btn.getAttribute("data-auth-callback") || "/pages/profile.html";
 
         const { error } = await supabase.auth.signInWithOAuth({
           provider,
           options: {
             redirectTo: location.origin + after,
-            // локаль для екранів Google, якщо підтримується
-            queryParams: { ui_locales: lang }
+            queryParams: { prompt: "select_account", ui_locales: lang }
           }
         });
 
         if (error) {
           fire(EVENTS.AUTH_ERROR, { error });
-          // без alert — не блокуємо UX; відобрази свій toast, якщо потрібно
           console.error("[auth] OAuth start error:", error);
         }
       });
@@ -328,7 +329,7 @@
     },
     async upsertProfile(partial) {
       const supabase = await ensureSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user} } = await supabase.auth.getUser();
       if (!user) throw new Error("Brak użytkownika");
       return supabase.from("profiles").upsert({ id: user.id, ...partial });
     }
@@ -342,6 +343,21 @@
 
     await routeGuard(supabase);
     wireForms(supabase);
+
+    // Якщо прийшли з листа (?code=...), тихо обміняємо код на сесію,
+    // щоб форми reset/update працювали одразу.
+    (async () => {
+      try {
+        const url = new URL(location.href);
+        const code = url.searchParams.get("code");
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(code).catch(() => {});
+          url.searchParams.delete("code");
+          url.searchParams.delete("error_description");
+          history.replaceState({}, document.title, url.pathname);
+        }
+      } catch {}
+    })();
 
     supabase.auth.getSession().then(({ data }) => {
       toggleAuthVisibility(data.session);

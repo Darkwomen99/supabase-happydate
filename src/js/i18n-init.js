@@ -1,70 +1,66 @@
-// js/i18n-init.js — легкий bootstrap i18n для Vercel (без repoBase)
+// /src/js/i18n-init.js — легкий bootstrap i18n для статичних сторінок
 (() => {
-  // ─────────────────────────────────────────────────────────────────────
-  // КОНФІГ
-  const UI_LANGS   = ["pl", "ua", "en", "ru", "de"];        // кнопки/локаль сайту
-  const FALLBACK   = ["pl", "en", "ua", "ru", "de"];        // ланцюжок фолбеків
-  const STORAGE_KEY = "lang";
+  // ───────────────────────────────────────────── Конфіг
+  const UI_LANGS     = ["pl", "ua", "en", "ru", "de"];
+  const FALLBACK     = ["pl", "en", "ua", "ru", "de"];
+  const STORAGE_KEY  = "lang";
 
-  const ENV = window.ENV || {};
-  const BASE_PATH = String(ENV.BASE_PATH || "");            // напр. "" або "/app"
+  const ENV       = window.ENV || {};
+  const BASE_PATH = String(ENV.BASE_PATH || "");
   const VERSION   = String(ENV.APP_VERSION || "1.0.0");
   const LANG_PATH = String(ENV.LANG_PATH || "/src/i18n/{{lng}}.json");
 
-  // Вбудовані бібліотеки (якщо підключені у <script>):
-  const hasI18n      = !!window.i18next;
-  const hasBackend   = !!window.i18nextHttpBackend;
-  const hasDetector  = !!window.i18nextBrowserLanguageDetector;
+  const hasI18n    = !!window.i18next;
+  const hasBackend = !!window.i18nextHttpBackend;
 
-  // ─────────────────────────────────────────────────────────────────────
-  // ДОПОМІЖНІ
+  // ───────────────────────────────────────────── Хелпери
   const qs = new URLSearchParams(location.search);
   const queryLang = qs.get("lang");
 
-  // Нормалізація коду мови під твої JSON-файли (ua.json)
   const mapToFileLang = (lng) => {
     const x = String(lng || "").toLowerCase();
-    if (x === "uk") return "ua"; // браузерний 'uk' → файл 'ua.json'
-    return x;
+    return x === "uk" ? "ua" : x;
   };
-
-  // Перевіряємо підтримку в UI (просто для кнопок/атрибутів)
   const isSupportedUI = (lng) => UI_LANGS.includes(mapToFileLang(lng));
   const clampUI = (lng) => (isSupportedUI(lng) ? mapToFileLang(lng) : "pl");
 
-  // Початкова мова:
   const getInitialLang = () => {
     if (queryLang) return clampUI(queryLang);
     try {
       const ls = localStorage.getItem(STORAGE_KEY);
       if (ls) return clampUI(ls);
     } catch {}
-    const nav = (navigator.languages?.[0] || navigator.language || "pl").slice(0,2);
+    const nav = (navigator.languages?.[0] || navigator.language || "pl").slice(0, 2);
     return clampUI(nav);
   };
 
   const setHtmlLang = (lng) => {
-    const normalized = clampUI(lng);
+    const norm = clampUI(lng);
     const html = document.documentElement;
-    html.setAttribute("lang", normalized);
-    html.setAttribute("dir", "ltr"); // поточні мови — LTR
+    html.setAttribute("lang", norm);
+    html.setAttribute("dir", "ltr");
   };
 
-  const dispatchChanged = (lng) => {
-    document.dispatchEvent(new CustomEvent("happydate:langChanged", { detail: { lang: clampUI(lng) } }));
+  // Маленький паб-саб для зовнішніх слухачів
+  const listeners = new Set();
+  const emitChange = (lng) => {
+    const norm = clampUI(lng);
+    listeners.forEach((cb) => { try { cb(norm); } catch {} });
+    document.dispatchEvent(new CustomEvent("happydate:langChanged", { detail: { lang: norm } }));
   };
 
-  // Переклад одного елемента за data-атрибутами
+  // Переклад елемента (textContent або innerHTML) + атрибути
   function translateElement(el) {
     if (!(el instanceof Element) || !hasI18n) return;
     const key = el.getAttribute("data-i18n");
     if (!key) return;
 
     const asHtml = el.hasAttribute("data-i18n-html");
-    const value = window.i18next.t(key);
+    const value  = window.i18next.t(key);
     if (asHtml) el.innerHTML = value;
     else el.textContent = value;
 
+    // Список атрибутів через data-i18n-attr="title,placeholder,aria-label"
     const attrList = (el.getAttribute("data-i18n-attr") || "")
       .split(",").map(s => s.trim()).filter(Boolean);
 
@@ -73,6 +69,7 @@
       el.setAttribute(attr, window.i18next.t(k));
     });
 
+    // Швидкі атрибути
     ["title", "placeholder", "aria-label"].forEach(attr => {
       const k = el.getAttribute(`data-i18n-${attr}`);
       if (k) el.setAttribute(attr, window.i18next.t(k));
@@ -84,13 +81,13 @@
     document.querySelectorAll("[data-i18n]").forEach(translateElement);
   }
 
-  // Спостерігач за динамічним DOM
+  // Спостерігаємо за DOM, щоб перекладати динамічні вузли
   const observer = new MutationObserver((mutations) => {
     for (const m of mutations) {
       if (m.type === "attributes" && m.attributeName === "data-i18n" && m.target) {
         translateElement(m.target);
       } else if (m.type === "childList") {
-        m.addedNodes.forEach(node => {
+        m.addedNodes.forEach((node) => {
           if (node.nodeType === 1) {
             if (node.hasAttribute?.("data-i18n")) translateElement(node);
             node.querySelectorAll?.("[data-i18n]")?.forEach(translateElement);
@@ -100,12 +97,12 @@
     }
   });
 
-  // Підключення кнопок перемикання .lang-btn[data-lang]
+  // Кнопки перемикання .lang-btn[data-lang]
   function wireLangButtons(getCurrent) {
     const buttons = document.querySelectorAll(".lang-btn[data-lang]");
     const setActive = (lng) => {
       const norm = clampUI(lng);
-      buttons.forEach(btn => {
+      buttons.forEach((btn) => {
         const btnLng = clampUI(btn.getAttribute("data-lang"));
         const isActive = btnLng === norm;
         btn.toggleAttribute("aria-current", isActive);
@@ -114,7 +111,7 @@
     };
     setActive(getCurrent());
 
-    buttons.forEach(btn => {
+    buttons.forEach((btn) => {
       btn.addEventListener("click", async () => {
         const target = clampUI(btn.getAttribute("data-lang"));
         await setLang(target);
@@ -123,32 +120,29 @@
     });
   }
 
-  // Уніфікований метод зміни мови:
+  // Зміна мови
   async function setLang(lng) {
     const next = clampUI(lng);
 
-    // 1) Якщо є твій фасад мов
-    if (window.i18n?.setLang) {
-      await window.i18n.setLang(next, { persist: true });
-      setHtmlLang(window.i18n.getLang ? window.i18n.getLang() : next);
+    // Якщо є кастомний фасад (сумісність), делегуємо йому
+    if (window.i18n && typeof window.i18n._internalSet === "function") {
+      await window.i18n._internalSet(next);
       return;
     }
 
-    // 2) Стандартний шлях із i18next
     if (!hasI18n) return;
     await window.i18next.changeLanguage(next);
     try { localStorage.setItem(STORAGE_KEY, next); } catch {}
     setHtmlLang(next);
     translateAll();
-    dispatchChanged(next);
+    emitChange(next);
   }
 
-  // ─────────────────────────────────────────────────────────────────────
-  // СТАРТ
+  // ───────────────────────────────────────────── Старт
   document.addEventListener("DOMContentLoaded", async () => {
     const initial = getInitialLang();
 
-    // Якщо i18next уже ініціалізований — не ініціалізуємо повторно.
+    // Якщо i18next вже ініціалізований — просто застосовуємо
     if (hasI18n && window.i18next.isInitialized) {
       await setLang(window.i18next.language || initial);
       translateAll();
@@ -156,75 +150,89 @@
         subtree: true, childList: true, attributes: true, attributeFilter: ["data-i18n"]
       });
       wireLangButtons(() => window.i18next.language);
-      return;
-    }
+    } else if (hasI18n) {
+      // Повна ініціалізація i18next
+      try {
+        const chain = window.i18next;
+        if (hasBackend) chain.use(window.i18nextHttpBackend);
 
-    // Якщо i18next відсутній — м'який фолбек
-    if (!hasI18n) {
-      console.error("[i18n-init] i18next не підключено. Додай i18next (+ i18nextHttpBackend) у <script>.");
-      setHtmlLang(initial);
-      try { localStorage.setItem(STORAGE_KEY, initial); } catch {}
-      wireLangButtons(() => initial);
-      return;
-    }
+        await chain.init({
+          supportedLngs: ["pl", "en", "ru", "de", "ua", "uk"],
+          nonExplicitSupportedLngs: true,
+          fallbackLng: FALLBACK,
+          load: "languageOnly",
+          returnNull: false,
+          backend: hasBackend ? {
+            loadPath: (lngs) => {
+              const lng = Array.isArray(lngs) ? lngs[0] : lngs;
+              const fileLng = mapToFileLang(lng);
+              const raw = (BASE_PATH + LANG_PATH).replace(/\/{2,}/g, "/");
+              return raw.replace("{{lng}}", encodeURIComponent(fileLng)) + `?v=${encodeURIComponent(VERSION)}`;
+            },
+            requestOptions: { credentials: "same-origin" },
+          } : undefined,
+          initImmediate: true,
+          lng: initial
+        });
 
-    // Нормальна ініціалізація i18next
-    try {
-      const chain = window.i18next;
-      if (hasBackend) chain.use(window.i18nextHttpBackend);
-      if (hasDetector) chain.use(window.i18nextBrowserLanguageDetector);
-
-      await chain.init({
-        // Підтримуємо і 'uk' (детекція), і 'ua' (файл)
-        supportedLngs: ["pl", "en", "ru", "de", "ua", "uk"],
-        nonExplicitSupportedLngs: true,
-        fallbackLng: FALLBACK,
-        load: "languageOnly",
-        returnNull: false,
-        detection: hasDetector ? {
-          order: ["querystring", "localStorage", "navigator"],
-          lookupQuerystring: "lang",
-          lookupLocalStorage: STORAGE_KEY,
-          caches: [], // керуємо самі
-        } : undefined,
-        backend: hasBackend ? {
-          // Мапимо 'uk' → 'ua' у шляхах завантаження
-          loadPath: (lngs) => {
-            const lng = Array.isArray(lngs) ? lngs[0] : lngs;
-            const fileLng = mapToFileLang(lng);
-            const raw = (BASE_PATH + LANG_PATH).replace(/\/{2,}/g, "/");
-            return raw.replace("{{lng}}", encodeURIComponent(fileLng)) + `?v=${encodeURIComponent(VERSION)}`;
-          },
-          requestOptions: { credentials: "same-origin" },
-        } : undefined,
-        initImmediate: true,
-        lng: initial
-      });
-
-      // Застосувати переклади
-      setHtmlLang(window.i18next.language);
-      translateAll();
-      observer.observe(document.documentElement, {
-        subtree: true, childList: true, attributes: true, attributeFilter: ["data-i18n"]
-      });
-      wireLangButtons(() => window.i18next.language);
-
-      // Синхронізація з Supabase user_metadata.lang (необов'язково)
-      if (window.supabase?.auth) {
-        try {
-          const { data: { session } } = await window.supabase.auth.getSession();
-          const userLng = session?.user?.user_metadata?.lang;
-          if (userLng && clampUI(userLng) !== clampUI(window.i18next.language)) {
-            await setLang(userLng);
-          }
-        } catch {}
+        setHtmlLang(window.i18next.language);
+        translateAll();
+        observer.observe(document.documentElement, {
+          subtree: true, childList: true, attributes: true, attributeFilter: ["data-i18n"]
+        });
+        wireLangButtons(() => window.i18next.language);
+      } catch (err) {
+        console.error("[i18n-init] Init error:", err);
+        setHtmlLang(initial);
+        wireLangButtons(() => initial);
       }
-
-    } catch (err) {
-      console.error("[i18n-init] Помилка ініціалізації:", err);
+    } else {
+      // М'який фолбек без i18next (щоб не ламати сторінку)
+      console.warn("[i18n-init] i18next не підключено — переклад не активний.");
       setHtmlLang(initial);
-      try { localStorage.setItem(STORAGE_KEY, initial); } catch {}
       wireLangButtons(() => initial);
+    }
+
+    // Спроба підхопити preferowaną mову з Supabase (user_metadata.lang)
+    if (window.supabase?.auth && hasI18n) {
+      try {
+        const { data: { session } } = await window.supabase.auth.getSession();
+        const userLng = session?.user?.user_metadata?.lang;
+        if (userLng && clampUI(userLng) !== clampUI(window.i18next.language)) {
+          await setLang(userLng);
+        }
+      } catch {}
     }
   });
+
+  // ───────────────────────────────────────────── Експорт фасаду (зручно для інших скриптів)
+  window.i18n = window.i18n || {};
+  // внутрішній сеттер (щоб уникнути подвійної логіки)
+  window.i18n._internalSet = async (lng) => {
+    if (!hasI18n) return;
+    const next = clampUI(lng);
+    await window.i18next.changeLanguage(next);
+    try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+    setHtmlLang(next);
+    translateAll();
+    emitChange(next);
+  };
+  window.i18n.setLang = async (lng, { persist = true } = {}) => {
+    const next = clampUI(lng);
+    if (!hasI18n) return;
+    await window.i18next.changeLanguage(next);
+    if (persist) { try { localStorage.setItem(STORAGE_KEY, next); } catch {} }
+    setHtmlLang(next);
+    translateAll();
+    emitChange(next);
+  };
+  window.i18n.getLang = () => {
+    if (hasI18n && window.i18next.language) return clampUI(window.i18next.language);
+    try {
+      const ls = localStorage.getItem(STORAGE_KEY);
+      if (ls) return clampUI(ls);
+    } catch {}
+    return clampUI((navigator.languages?.[0] || navigator.language || "pl").slice(0,2));
+  };
+  window.i18n.onChange = (cb) => { if (typeof cb === "function") listeners.add(cb); return () => listeners.delete(cb); };
 })();

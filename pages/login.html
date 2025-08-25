@@ -1,52 +1,158 @@
-<!-- login.html (bez analytics, poprawna wersja) -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Logowanie — HappyDate</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media (prefers-reduced-motion: reduce){ .animate-spin{animation:none!important} }
+  </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-  <main class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-    <h1 class="text-2xl font-bold mb-6 text-center">Zaloguj się do HappyDate</h1>
-    <form id="login-form" class="space-y-4">
-      <input type="email" id="email" placeholder="Email" required class="w-full p-2 border rounded">
-      <input type="password" id="password" placeholder="Hasło" required class="w-full p-2 border rounded">
-      <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded">Zaloguj się</button>
+
+  <main class="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-2 text-center">Zaloguj się do HappyDate</h1>
+    <p class="text-center text-sm text-gray-600 mb-6">Wróć do planowania prezentów z AI 🎁</p>
+
+    <form id="login-form" class="space-y-4" novalidate>
+      <label class="block">
+        <span class="text-sm font-medium">E-mail</span>
+        <input id="email" type="email" required
+               class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900"
+               placeholder="you@example.com" />
+      </label>
+
+      <label class="block">
+        <span class="text-sm font-medium">Hasło</span>
+        <div class="relative">
+          <input id="password" type="password" required minlength="6"
+                 class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900 pr-12"
+                 placeholder="Twoje hasło" />
+          <button type="button" id="togglePwd"
+                  class="absolute inset-y-0 right-3 text-sm text-blue-600">Pokaż</button>
+        </div>
+      </label>
+
+      <button id="loginBtn" type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+        Zaloguj się
+      </button>
     </form>
-    <p class="mt-4 text-center text-sm">Nie masz konta? <a href="/pages/register.html" class="text-blue-600 underline">Zarejestruj się</a></p>
+
+    <div class="my-6 flex items-center gap-3">
+      <div class="flex-1 h-px bg-gray-200"></div>
+      <span class="text-xs uppercase text-gray-500">lub</span>
+      <div class="flex-1 h-px bg-gray-200"></div>
+    </div>
+
+    <button id="googleBtn"
+            class="w-full border border-gray-300 hover:bg-gray-50 text-gray-800 py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5">
+      Zaloguj przez Google
+    </button>
+
+    <p id="msg" class="mt-4 text-sm text-gray-700"></p>
+
+    <div class="mt-6 text-center text-sm">
+      <a href="/pages/reset-password.html" class="text-blue-600 hover:underline">Nie pamiętasz hasła?</a><br>
+      <span>Nie masz konta?</span>
+      <a href="/pages/register.html" class="text-blue-600 hover:underline">Zarejestruj się</a>
+    </div>
   </main>
 
+  <!-- Toast -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded text-white shadow-lg"></div>
+
+  <!-- (opcjonalnie) wspólny skрипт UI -->
+  <script src="/src/js/main.js" defer></script>
+
+  <!-- Supabase login logic -->
   <script type="module">
-    import { auth } from '../js/firebaseConfig.js';
-    import { getFriendlyErrorMessage } from '../js/errorMessages.js';
+    import { supabase } from '/src/js/supabaseClient.js';
 
-    document.getElementById('login-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    const $ = (s, r=document) => r.querySelector(s);
+    const msg = $('#msg');
+    const loginBtn = $('#loginBtn');
+    const googleBtn = $('#googleBtn');
 
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          showNotification("Zalogowano pomyślnie ✅");
-          setTimeout(() => window.location.href = 'dashboard.html', 1200);
-        })
-        .catch(error => {
-          console.warn("Błąd logowania:", error.code);
-          showNotification(getFriendlyErrorMessage(error.code), true);
-        });
+    const toast = (text, type='ok') => {
+      const t = $('#toast');
+      t.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded text-white shadow-lg';
+      t.classList.add(type==='err' ? 'bg-red-600' : type==='warn' ? 'bg-yellow-600' : 'bg-green-600');
+      t.textContent = text; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2600);
+    };
+
+    const setLoading = (btn, loading=true, label='Logowanie…') => {
+      btn.disabled = loading;
+      if (loading) {
+        btn.dataset._label = btn.textContent;
+        btn.innerHTML = '<span class="inline-block align-middle w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin"></span>' + label;
+      } else {
+        btn.textContent = btn.dataset._label || 'Zaloguj się';
+      }
+    };
+
+    // Show/Hide password
+    $('#togglePwd')?.addEventListener('click', () => {
+      const inp = $('#password');
+      const isPwd = inp.type === 'password';
+      inp.type = isPwd ? 'text' : 'password';
+      $('#togglePwd').textContent = isPwd ? 'Ukryj' : 'Pokaż';
     });
 
-    function showNotification(message, isError = false) {
-      const note = document.createElement('div');
-      note.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 ' +
-        (isError ? 'bg-red-500' : 'bg-green-500') +
-        ' text-white px-4 py-2 rounded shadow z-50';
-      note.textContent = message;
-      document.body.appendChild(note);
-      setTimeout(() => note.remove(), 2500);
-    }
+    // Email+password login
+    $('#login-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      const email = $('#email').value.trim();
+      const password = $('#password').value.trim();
+
+      if (!email || !password) { msg.textContent = 'Wpisz e-mail i hasło.'; return; }
+
+      setLoading(loginBtn, true);
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        setLoading(loginBtn, false);
+        if (error) {
+          const m = (error.message||'').toLowerCase();
+          if (m.includes('invalid login') || m.includes('invalid email or password')) {
+            msg.textContent = 'Nieprawidłowy e-mail lub hasło.';
+          } else if (m.includes('email not confirmed')) {
+            msg.textContent = 'Potwierdź e-mail, zanim się zalogujesz.';
+          } else {
+            msg.textContent = 'Nie udało się zalogować.';
+          }
+          toast('Błąd logowania', 'err');
+          return;
+        }
+        toast('Zalogowano ✅');
+        setTimeout(()=> window.location.href = '/pages/dashboard.html', 700);
+      } catch (e) {
+        console.error(e);
+        setLoading(loginBtn, false);
+        msg.textContent = 'Ups! Spróbuj ponownie.';
+        toast('Błąd serwera', 'err');
+      }
+    });
+
+    // Google OAuth
+    googleBtn?.addEventListener('click', async () => {
+      try {
+        googleBtn.disabled = true;
+        await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/pages/dashboard.html',
+            queryParams: { prompt: 'consent' }
+          }
+        });
+      } catch (e) {
+        console.error(e);
+        googleBtn.disabled = false;
+        toast('Nie udało się rozpocząć logowania Google', 'err');
+      }
+    });
   </script>
 </body>
 </html>

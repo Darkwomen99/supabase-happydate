@@ -1,47 +1,220 @@
+<!-- /pages/register.html — HappyDate -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rejestracja — HappyDate</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/src/css/style.css" />
+
+  <style>
+    @media (prefers-reduced-motion: reduce){ .animate-spin{animation:none!important} }
+    .strength-0{width:20%;background:#ef4444}
+    .strength-1{width:40%;background:#f59e0b}
+    .strength-2{width:60%;background:#fbbf24}
+    .strength-3{width:80%;background:#22c55e}
+    .strength-4{width:100%;background:#16a34a}
+  </style>
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-pink-100 dark:from-gray-800 dark:to-gray-900">
-  <!-- <script src="/env.local.js"></script> -->
+
   <main class="w-full max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
     <h1 class="text-2xl font-bold text-center mb-2">Rejestracja</h1>
     <p class="text-center text-sm text-gray-600 dark:text-gray-300 mb-6">Załóż konto, aby planować prezenty z AI.</p>
 
+    <!-- Email / Password -->
     <form id="regForm" class="space-y-4" novalidate>
       <label class="block">
-        <span class="text-sm font-medium">E‑mail</span>
-        <input name="email" type="email" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900" required />
+        <span class="text-sm font-medium">E-mail</span>
+        <input name="email" type="email" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900" placeholder="you@example.com" required />
       </label>
+
       <label class="block">
         <span class="text-sm font-medium">Hasło</span>
-        <input name="password" type="password" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900" required />
+        <div class="relative">
+          <input name="password" id="pass1" type="password" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900 pr-12" placeholder="Min. 6 znaków" minlength="6" required />
+          <button type="button" id="toggle1" class="absolute inset-y-0 right-3 text-sm text-blue-600">Pokaż</button>
+        </div>
       </label>
-      <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">Utwórz konto</button>
+
+      <label class="block">
+        <span class="text-sm font-medium">Powtórz hasło</span>
+        <div class="relative">
+          <input id="pass2" type="password" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900 pr-12" minlength="6" required />
+          <button type="button" id="toggle2" class="absolute inset-y-0 right-3 text-sm text-blue-600">Pokaż</button>
+        </div>
+      </label>
+
+      <!-- Password strength -->
+      <div class="h-2 w-full bg-gray-200 rounded overflow-hidden" aria-hidden="true">
+        <div id="strengthBar" class="h-2 strength-0 transition-all"></div>
+      </div>
+      <p id="strengthText" class="text-xs text-gray-500">Siła hasła: słabe</p>
+
+      <button id="submitEmail"
+              type="submit"
+              class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+        Utwórz konto
+      </button>
     </form>
+
+    <!-- Or -->
+    <div class="my-6 flex items-center gap-3">
+      <div class="flex-1 h-px bg-gray-200"></div>
+      <span class="text-xs uppercase text-gray-500">lub</span>
+      <div class="flex-1 h-px bg-gray-200"></div>
+    </div>
+
+    <!-- Google -->
+    <button id="googleBtn"
+            class="w-full border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" />
+      Zarejestruj się przez Google
+    </button>
+
+    <p id="msg" class="mt-4 text-sm text-gray-700 dark:text-gray-300"></p>
 
     <div class="my-4 text-center">
       <a href="/pages/login.html" class="text-blue-600 hover:underline text-sm">Masz już konto? Zaloguj się</a>
     </div>
   </main>
 
+  <!-- Toast -->
+  <div id="toast"
+       class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded text-white shadow-lg"></div>
+
+  <!-- Twoje wspólne skрипти (мови/тема/навігація) — не обов'язково, але можна підключити -->
+  <script src="/src/js/main.js" defer></script>
+
+  <!-- Supabase -->
   <script type="module">
     import { supabase } from '/src/js/supabaseClient.js';
-    const f = document.getElementById('regForm');
-    f.addEventListener('submit', async (e)=>{
+
+    const $  = (s, r=document) => r.querySelector(s);
+
+    // Toast
+    const toast = (msg, type='ok') => {
+      const el = $('#toast');
+      el.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded text-white shadow-lg';
+      el.classList.add(type==='err' ? 'bg-red-600' : type==='warn' ? 'bg-yellow-600' : 'bg-green-600');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(()=> el.classList.add('hidden'), 2600);
+    };
+
+    // UI
+    const form         = $('#regForm');
+    const submitEmail  = $('#submitEmail');
+    const googleBtn    = $('#googleBtn');
+    const msg          = $('#msg');
+    const strengthBar  = $('#strengthBar');
+    const strengthText = $('#strengthText');
+    const pass1        = $('#pass1');
+    const pass2        = $('#pass2');
+
+    // Strength meter (prosta heurystyka)
+    function updateStrength() {
+      const v = pass1.value || '';
+      let score = 0;
+      if (v.length >= 6) score++;
+      if (/[A-ZĄĆĘŁŃÓŚŹŻ]/.test(v)) score++;
+      if (/[a-ząćęłńóśźż]/.test(v)) score++;
+      if (/[0-9]/.test(v) || /[^A-Za-z0-9]/.test(v)) score++;
+      strengthBar.className = 'h-2 ' + 'strength-' + score;
+      strengthText.textContent =
+        'Siła hasła: ' + (score<=1 ? 'słabe' : score===2 ? 'średnie' : score===3 ? 'dobre' : 'bardzo dobre');
+    }
+    pass1.addEventListener('input', updateStrength);
+
+    // Pokaż/Ukryj
+    const toggle = (input, btn) => {
+      const isPwd = input.type === 'password';
+      input.type = isPwd ? 'text' : 'password';
+      btn.textContent = isPwd ? 'Ukryj' : 'Pokaż';
+    };
+    document.getElementById('toggle1')?.addEventListener('click', ()=> toggle(pass1, document.getElementById('toggle1')));
+    document.getElementById('toggle2')?.addEventListener('click', ()=> toggle(pass2, document.getElementById('toggle2')));
+
+    // Helper: loading state
+    const setLoading = (btn, loading=true, label='Przetwarzanie…') => {
+      btn.disabled = loading;
+      if (loading) {
+        btn.dataset._label = btn.textContent;
+        btn.innerHTML = '<span class="inline-block align-middle w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin"></span>' + label;
+      } else {
+        btn.textContent = btn.dataset._label || 'Utwórz konto';
+      }
+    };
+
+    // EMAIL + PASSWORD SIGNUP
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = f.email.value.trim();
-      const password = f.password.value.trim();
-      const { error } = await supabase.auth.signUp({
-        email, password,
-        options: { emailRedirectTo: location.origin + '/pages/dashboard.html' }
-      });
-      alert(error ? ('Błąd: ' + error.message) : 'Sprawdź skrzynkę — wysłaliśmy link aktywacyjny 📩');
+      const email = form.email.value.trim();
+      const password = pass1.value.trim();
+      const confirm  = pass2.value.trim();
+
+      msg.textContent = '';
+
+      if (!email || !password) { msg.textContent = 'Uzupełnij e-mail i hasło.'; return; }
+      if (password.length < 6) { msg.textContent = 'Hasło jest za krótkie (min. 6 znaków).'; return; }
+      if (password !== confirm) { msg.textContent = 'Hasła muszą być takie same.'; return; }
+
+      setLoading(submitEmail, true, 'Tworzenie konta…');
+      try {
+        // Jeśli email confirmation włączony w Supabase — wyśle maila
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin + '/pages/dashboard.html'
+          }
+        });
+
+        setLoading(submitEmail, false);
+
+        if (error) {
+          const m = (error.message || '').toLowerCase();
+          if (m.includes('invalid email')) msg.textContent = 'Nieprawidłowy adres e-mail.';
+          else if (m.includes('password')) msg.textContent = 'Hasło nie spełnia wymagań.';
+          else if (m.includes('already registered')) msg.textContent = 'Taki e-mail już istnieje.';
+          else msg.textContent = 'Nie udało się utworzyć konta.';
+          toast('Błąd rejestracji', 'err');
+          return;
+        }
+
+        // Dwa scenariusze:
+        // 1) Włączone potwierdzanie e-maila → brak sesji, prosimy sprawdzić skrzynkę
+        // 2) Wyłączone potwierdzanie → użytkownik od razu zalogowany i zostanie przekierowany przez onAuthStateChange
+        toast('Konto utworzone ✅');
+        msg.textContent = 'Jeśli wymagane — sprawdź skrzynkę i potwierdź e-mail.';
+        setTimeout(()=> window.location.href = '/pages/dashboard.html', 900);
+      } catch (e) {
+        console.error(e);
+        setLoading(submitEmail, false);
+        msg.textContent = 'Ups! Spróbuj ponownie.';
+        toast('Błąd serwera', 'err');
+      }
+    });
+
+    // GOOGLE OAUTH
+    googleBtn.addEventListener('click', async () => {
+      try {
+        googleBtn.disabled = true;
+        await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/pages/dashboard.html',
+            queryParams: { prompt: 'consent' } // wymuś wybór konta przy potrzebie
+          }
+        });
+        // Uwaga: przeglądarka przejdzie do Google i wróci na redirectTo
+      } catch (e) {
+        console.error(e);
+        googleBtn.disabled = false;
+        toast('Nie udało się rozpocząć logowania Google', 'err');
+      }
     });
   </script>
 </body>

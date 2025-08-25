@@ -1,81 +1,24 @@
 // /js/calendar.js — HappyDate Calendar (Supabase v2, production-ready, ESM)
 import { Calendar } from "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.js";
 
-// Якщо у тебе є модульний клієнт:
-// import { supabase as supabaseClient } from './supabaseClient.js';
-// Але щоб скрипт був автономний, використаємо м’які fallback-и:
-const supabase = window.supabase /* || supabaseClient */;
+// Клієнт беремо з window.supabase (його ініціалізуєш у /src/js/supabaseClient.js або /src/js/auth.js)
+const supabase = window.supabase;
 
-// ───────────────────────────────── helpers
+// ───────────────────────── helpers
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
 const hasAuthModule = typeof window.auth?.requireAuth === "function";
 
-// Безпечний гард авторизації з fallback-логікою
-async function ensureUser() {
-  if (!supabase) {
-    console.error("[calendar] Supabase client is missing (window.supabase).");
-    return null;
-  }
-
-  // 1) Якщо є window.auth.requireAuth (з твого auth.js)
-  if (hasAuthModule) {
-    try {
-      const user = await window.auth.requireAuth({ redirectTo: "/login.html" });
-      return user;
-    } catch {
-      return null;
-    }
-  }
-
-  // 2) Інакше — напряму через Supabase
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
-    try {
-      sessionStorage.setItem("happydate_post_login_redirect", location.pathname + location.search + location.hash);
-    } catch {}
-    location.href = "/login.html";
-    return null;
-  }
-  return session.user;
-}
-
-// Реакція на зміну сесії у фоні (інша вкладка)
-function attachAuthGuard() {
-  if (!supabase?.auth?.onAuthStateChange) return;
-  supabase.auth.onAuthStateChange((_event, session) => {
-    if (!session?.user) location.href = "/login.html";
-  });
-}
-
-// Конвертуємо локальну дату/час у ISO (з урахуванням локальної TZ)
-function localDateTimeToISO(dateStr /* YYYY-MM-DD */, timeStr /* HH:mm */ = "09:00") {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const [hh, mm] = timeStr.split(":").map(Number);
-  const dt = new Date(y, (m - 1), d, hh || 0, mm || 0, 0, 0);
-  return dt.toISOString();
-}
-
 function colorByType(type) {
   switch ((type || "").toLowerCase()) {
-    case "birthday":    return "#3b82f6"; // blue
-    case "anniversary": return "#ec4899"; // pink
-    case "name_day":    return "#10b981"; // green
+    case "birthday":    return "#3b82f6";
+    case "anniversary": return "#ec4899";
+    case "name_day":    return "#10b981";
     case "holiday":
     case "event":
-    default:            return "#8b5cf6"; // violet (default)
+    default:            return "#8b5cf6";
   }
-}
-
-function humanDate(iso) {
-  try {
-    const d = new Date(iso);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  } catch { return iso; }
 }
 
 function esc(s = "") {
@@ -87,58 +30,136 @@ function esc(s = "") {
     .replace(/'/g,"&#39;");
 }
 
-// ───────────────────────────────── CRUD (Supabase)
+function localDateTimeToISO(dateStr /* YYYY-MM-DD */, timeStr /* HH:mm */ = "09:00") {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [hh, mm]  = (timeStr || "09:00").split(":").map(Number);
+  const dt = new Date(y, (m - 1), d, hh || 0, mm || 0, 0, 0);
+  return dt.toISOString();
+}
+
+function humanDate(isoOrYmd) {
+  // Повертаємо YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(isoOrYmd))) return isoOrYmd;
+  try {
+    const d = new Date(isoOrYmd);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  } catch { return String(isoOrYmd); }
+}
+
+// ───────────────────────── auth guard
+async function ensureUser() {
+  if (!supabase) {
+    console.error("[calendar] Supabase client missing. Make sure /src/js/supabaseClient.js loaded first.");
+    return null;
+  }
+  // 1) якщо є window.auth
+  if (hasAuthModule) {
+    try {
+      const user = await window.auth.requireAuth({ redirectTo: "/pages/login.html" });
+      return user;
+    } catch { return null; }
+  }
+  // 2) fallback напряму
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    try {
+      sessionStorage.setItem("happydate_post_login_redirect", location.pathname + location.search + location.hash);
+    } catch {}
+    location.href = "/pages/login.html";
+    return null;
+  }
+  return session.user;
+}
+
+function attachAuthGuard() {
+  supabase?.auth?.onAuthStateChange?.((_e, session) => {
+    if (!session?.user) location.href = "/pages/login.html";
+  });
+}
+
+// ───────────────────────── DB access (підтримка 2 схем)
+function rowToEvent(row) {
+  // Нова схема: start_at (timestamptz)
+  // Стара схема: date (YYYY-MM-DD) +, можливо, time (HH:mm) — будемо вважати 09:00
+  const start =
+    row.start_at ? row.start_at :
+    row.date     ? localDateTimeToISO(row.date, row.time || "09:00") :
+    null;
+
+  const title = `${row.person ? row.person + " " : ""}${row.title || ""}`.trim() || "Wydarzenie";
+
+  return {
+    id: row.id,
+    title,
+    start,
+    color: colorByType(row.type),
+    extendedProps: {
+      type: row.type || "",
+      person: row.person || ""
+    }
+  };
+}
+
+// Ми не знаємо напевно, який стовпець для user_id використовується (user_id чи uid),
+// тому беремо по користувачу з OR і фільтруємо по діапазону в JS — це надійно й просто.
 async function fetchEventsForRange(userId, startStr, endStr) {
   const { data, error } = await supabase
     .from("events")
-    .select("id,title,type,person,start_at")
-    .eq("user_id", userId)
-    .gte("start_at", startStr)
-    .lt("start_at", endStr) // endStr у FullCalendar — ексклюзивна межа
-    .order("start_at", { ascending: true });
+    .select("id,title,type,person,start_at,date,time,user_id,uid")
+    .or(`user_id.eq.${userId},uid.eq.${userId}`)
+    .order("start_at", { ascending: true })
+    .order("date", { ascending: true });
 
   if (error) {
     console.error("[events] fetch error:", error);
     return [];
   }
-  return (data || []).map(row => ({
-    id: row.id,
-    title: `${row.person ? row.person + " " : ""}${row.title || ""}`.trim() || "Wydarzenie",
-    start: row.start_at,
-    color: colorByType(row.type),
-    extendedProps: {
-      type: row.type || "",
-      person: row.person || "",
-    }
-  }));
+
+  const startMs = new Date(startStr).getTime();
+  const endMs   = new Date(endStr).getTime();
+
+  return (data || [])
+    .map(rowToEvent)
+    .filter(ev => {
+      if (!ev.start) return false;
+      const t = new Date(ev.start).getTime();
+      return t >= startMs && t < endMs;
+    });
 }
 
 async function fetchNextEvents(userId, limit = 5) {
-  const nowIso = new Date().toISOString();
+  const now = Date.now();
   const { data, error } = await supabase
     .from("events")
-    .select("id,title,type,person,start_at")
-    .eq("user_id", userId)
-    .gte("start_at", nowIso)
-    .order("start_at", { ascending: true })
-    .limit(limit);
+    .select("id,title,type,person,start_at,date,time,user_id,uid")
+    .or(`user_id.eq.${userId},uid.eq.${userId}`);
 
   if (error) {
     console.error("[events] next error:", error);
     return [];
   }
-  return (data || []).map(row => ({
-    id: row.id,
-    title: `${row.person ? row.person + " " : ""}${row.title || ""}`.trim() || "Wydarzenie",
-    start: row.start_at,
-    color: colorByType(row.type),
-    extendedProps: { type: row.type || "", person: row.person || "" }
-  }));
+
+  return (data || [])
+    .map(rowToEvent)
+    .filter(ev => ev.start && new Date(ev.start).getTime() >= now)
+    .sort((a,b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+    .slice(0, limit);
 }
 
 async function insertEvent(userId, { title, type, person, date, time }) {
-  const start_at = localDateTimeToISO(date, time);
-  return supabase.from("events").insert({ user_id: userId, title, type, person, start_at });
+  // Підтримуємо нову схему (user_id + start_at).
+  // Якщо у тебе ще стара таблиця (uid + date), цей insert не спрацює.
+  // РЕКОМЕНДАЦІЯ: мігруй таблицю на user_id/start_at (див. попередні інструкції).
+  return supabase.from("events").insert({
+    user_id: userId,
+    title,
+    type,
+    person,
+    start_at: localDateTimeToISO(date, time)
+  });
 }
 
 async function updateEvent(eventId, { title, type, person, date, time }) {
@@ -151,12 +172,11 @@ async function deleteEvent(eventId) {
   return supabase.from("events").delete().eq("id", eventId);
 }
 
-// ───────────────────────────────── UI helpers
+// ───────────────────────── UI helpers
 function openModal() {
   const m = $("#eventModal");
   if (!m) return;
   m.classList.remove("hidden");
-  // фокус на перше поле
   $("#eventTitle")?.focus();
 }
 
@@ -172,11 +192,11 @@ function fillFormFromEventObj(e) {
   const modal = $("#eventModal");
   modal?.setAttribute("data-editing-id", e.id);
 
-  $("#eventTitle").value  = e.title.replace(/\s*🎁$/, "").trim();
+  $("#eventTitle").value  = (e.title || "").replace(/\s*🎁$/, "").trim();
   $("#eventType").value   = e.extendedProps?.type || "";
   $("#eventPerson").value = e.extendedProps?.person || "";
 
-  const dateIso = e.startStr || e.start?.toISOString();
+  const dateIso = e.startStr || e.start?.toISOString?.() || e.start;
   $("#eventDate").value   = humanDate(dateIso);
   const time = (e.start?.toTimeString?.() || "").slice(0,5); // HH:mm
   if ($("#eventTime")) $("#eventTime").value = time || "09:00";
@@ -224,7 +244,7 @@ function updateEventList(events) {
   box.innerHTML = html;
 }
 
-// Дебаунс для рефетчу (уникаємо «штормів»)
+// Дебаунс для рефетчу
 let refetchTimer;
 function scheduleRefetch(calendar, user) {
   clearTimeout(refetchTimer);
@@ -235,7 +255,7 @@ function scheduleRefetch(calendar, user) {
   }, 250);
 }
 
-// ───────────────────────────────── main
+// ───────────────────────── main
 export async function initEventsPage() {
   if (!supabase) {
     console.error("[calendar] Supabase client is missing (window.supabase).");
@@ -259,7 +279,6 @@ export async function initEventsPage() {
       center: "title",
       right: "dayGridMonth,listMonth"
     },
-    // Ліміт подій на видимий діапазон (ефективність)
     events: async (fetchInfo, successCb, failureCb) => {
       try {
         const rows = await fetchEventsForRange(user.id, fetchInfo.startStr, fetchInfo.endStr);
@@ -282,10 +301,10 @@ export async function initEventsPage() {
 
   calendar.render();
 
-  // Первинне завантаження «найближчих 5»
+  // Початкові 5 найближчих
   fetchNextEvents(user.id, 5).then(updateEventList).catch(() => {});
 
-  // Realtime: відслідковуємо лише свої події
+  // Realtime тільки для цього користувача
   const channel = supabase
     .channel("events-user-feed")
     .on(
@@ -293,28 +312,31 @@ export async function initEventsPage() {
       { event: "*", schema: "public", table: "events", filter: `user_id=eq.${user.id}` },
       () => scheduleRefetch(calendar, user)
     )
+    // якщо ще стара схема — дублюємо підписку і по uid
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "events", filter: `uid=eq.${user.id}` },
+      () => scheduleRefetch(calendar, user)
+    )
     .subscribe();
 
-  // ── Модальне вікно / форма
+  // Модалка / форма
   const modal = $("#eventModal");
   const form  = $("#eventForm");
 
   $("#closeModal")?.addEventListener("click", () => closeModal(true));
   modal?.addEventListener("click", (e) => { if (e.target === modal) closeModal(true); });
 
-  // Закриття по Esc
   document.addEventListener("keydown", (e) => {
     if (!modal || modal.classList.contains("hidden")) return;
     if (e.key === "Escape") closeModal(true);
   });
 
-  // Створити/оновити
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     setFeedback("");
 
     const payload = readForm();
-    // Можеш послабити умови, якщо потрібно
     if (!payload.title || !payload.date) {
       setFeedback("Wpisz tytuł i datę.", "error");
       return;
@@ -337,7 +359,6 @@ export async function initEventsPage() {
     }
   });
 
-  // Видалити
   $("#deleteEvent")?.addEventListener("click", async () => {
     const editingId = modal.getAttribute("data-editing-id");
     if (!editingId) return;
@@ -354,7 +375,6 @@ export async function initEventsPage() {
     }
   });
 
-  // Очищення підписки при виході
   window.addEventListener("beforeunload", () => {
     try { supabase.removeChannel(channel); } catch {}
   });

@@ -1,4 +1,6 @@
-// profile.js — HappyDate (Supabase v2, optymalizowany, production-ready)
+// /src/js/profile.js — HappyDate (Supabase v2, clean & safe)
+import { supabase } from "/src/js/supabaseClient.js";
+
 (() => {
   // ───────────────────────────────── Helpers
   const $  = (s, r = document) => r.querySelector(s);
@@ -22,208 +24,331 @@
     return today.toISOString().split("T")[0];
   };
 
-  async function ensureSupabase() {
-    if (window.supabase) return window.supabase;
-    if (!window.ENV?.SUPABASE_URL || !window.ENV?.SUPABASE_ANON_KEY) return null;
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-    window.supabase = createClient(window.ENV.SUPABASE_URL, window.ENV.SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  // маленький конструктор елементів (щоб не ліпити innerHTML)
+  const h = (tag, props = {}, children = []) => {
+    const el = document.createElement(tag);
+    Object.entries(props).forEach(([k, v]) => {
+      if (k === "class") el.className = v;
+      else if (k === "dataset") Object.assign(el.dataset, v);
+      else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+      else if (k in el) el[k] = v;
+      else el.setAttribute(k, v);
     });
-    return window.supabase;
-  }
+    (Array.isArray(children) ? children : [children]).forEach((c) => {
+      if (c == null) return;
+      if (typeof c === "string") el.appendChild(document.createTextNode(c));
+      else el.appendChild(c);
+    });
+    return el;
+  };
 
-  function initLangDropdown() {
-    const btn = $("#langDropdownBtn"), dd = $("#langDropdown"), flag = $("#langFlag");
-    const langMap = { pl: "🇵🇱", uk: "🇺🇦", ua: "🇺🇦", en: "🇬🇧", ru: "🇷🇺", de: "🇩🇪" };
-    const getLang = () => window.i18n?.getLang?.() || localStorage.getItem("lang") || navigator.language.slice(0,2);
-    const setFlag = () => flag && (flag.textContent = langMap[getLang()] || "🌐");
-
+  // ───────────────────────────────── Main
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Lang dropdown (простенько, без перезавантаження якщо є i18n)
+    const langBtn = $("#langDropdownBtn"), langDD = $("#langDropdown"), langFlag = $("#langFlag");
+    const langMap = { pl: "🇵🇱", ua: "🇺🇦", en: "🇬🇧", ru: "🇷🇺", de: "🇩🇪" };
+    const getLang = () =>
+      window.i18n?.getLang?.() ||
+      localStorage.getItem("lang") ||
+      (navigator.language || "pl").slice(0, 2);
+    const setFlag = () => langFlag && (langFlag.textContent = langMap[getLang()] || "🌐");
     setFlag();
-    btn?.addEventListener("click", e => { dd?.classList.toggle("hidden"); e.stopPropagation(); });
-    document.addEventListener("click", () => dd?.classList.add("hidden"));
-    dd?.querySelectorAll("button").forEach(b => {
+    langBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      langDD?.classList.toggle("hidden");
+    });
+    document.addEventListener("click", () => langDD?.classList.add("hidden"));
+    langDD?.querySelectorAll("button[data-lang]").forEach((b) => {
       b.addEventListener("click", async () => {
         const lng = b.dataset.lang;
-        if (window.i18n?.setLang) await window.i18n.setLang(lng, { persist: true });
-        else localStorage.setItem("lang", lng);
-        setFlag();
-        if (!window.i18n) location.reload();
+        if (window.i18n?.setLang) {
+          await window.i18n.setLang(lng, { persist: true });
+          setFlag();
+        } else {
+          localStorage.setItem("lang", lng);
+          location.reload();
+        }
       });
     });
-    window.i18n?.onChange?.(setFlag);
-  }
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    initLangDropdown();
-    const supabase = await ensureSupabase();
-    if (!supabase) return;
+    // Auth gate
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      location.href = "/pages/login.html";
+      return;
+    }
+    const userId = session.user.id;
 
-    const form = $("#profile-form"), photoInput = $("#photoFile"), userPhoto = $("#user-photo");
-    const userPoints = $("#userPoints"), userLevel = $("#user-level");
-    const eventList = $("#event-list"), eventEmpty = $("#event-empty"), eventForm = $("#eventForm");
-    const logoutBtn = $("#logout-btn"), addEventBtn = $("#add-event-btn"), eventModal = $("#eventModal");
-    const referralBtn = $("#referral-btn"), historyList = $("#history-list");
+    // UI refs
+    const form          = $("#profile-form");
+    const photoInput    = $("#photoFile");
+    const userPhoto     = $("#user-photo");
+    const userPoints    = $("#userPoints");
+    const userLevel     = $("#user-level");
+    const logoutBtn     = $("#logout-btn");
 
-    let userId = null, loadedPoints = 0;
-    const session = await (window.auth?.requireAuth ? window.auth.requireAuth({ redirectTo: "/pages/login.html" }) : supabase.auth.getSession().then(r => r.data.session));
-    if (!session?.user) return location.href = "/pages/login.html";
-    userId = session.user.id;
+    const eventList     = $("#event-list");
+    const eventEmpty    = $("#event-empty");
+    const eventForm     = $("#eventForm");
+    const eventModal    = $("#eventModal");
 
+    const historyList   = $("#history-list");
+    const referralBtn   = $("#referral-btn");
+
+    // Logout
     logoutBtn?.addEventListener("click", async () => {
-      await (window.auth?.signOut?.() || supabase.auth.signOut());
-      toast("Wylogowano ✅");
-      setTimeout(() => location.href = "/pages/login.html", 800);
+      try {
+        await supabase.auth.signOut();
+        toast("Wylogowano ✅");
+      } finally {
+        setTimeout(() => (location.href = "/pages/login.html"), 600);
+      }
     });
 
-    async function loadProfile() {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-      if (error) return console.error(error);
+    let loadedPoints = 0;
 
-      const p = data || {}, { data: userData } = await supabase.auth.getUser();
-      if (form) {
-        form.name.value = p.name || "";
-        form.surname.value = p.surname || "";
-        form.email.value = userData?.user?.email || "";
-        form.phone.value = p.phone || "";
-        form.birthdate.value = p.birthdate || "";
-        form.gender.value = p.gender || "";
-        form.preferences.value = p.preferences || "";
+    // ───────────────── loadProfile
+    async function loadProfile() {
+      try {
+        const { data: prof, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+        if (error) throw error;
+
+        const { data: u } = await supabase.auth.getUser();
+
+        const p = prof || {};
+        if (form) {
+          // guardy на випадок відсутніх полів у розмітці
+          form.name       && (form.name.value       = p.name || "");
+          form.surname    && (form.surname.value    = p.surname || "");
+          form.email      && (form.email.value      = u?.user?.email || "");
+          form.phone      && (form.phone.value      = p.phone || "");
+          form.birthdate  && (form.birthdate.value  = p.birthdate || "");
+          form.gender     && (form.gender.value     = p.gender || "");
+          form.preferences&& (form.preferences.value= p.preferences || "");
+        }
+
+        const avatar =
+          p.photo_url ||
+          session.user.user_metadata?.avatar_url ||
+          session.user.user_metadata?.picture ||
+          "/public/img/11.png";
+        if (userPhoto) {
+          userPhoto.src = avatar;
+          userPhoto.alt = p.name ? `${p.name} — avatar` : "Profil użytkownika";
+          userPhoto.referrerPolicy = "no-referrer";
+        }
+
+        loadedPoints = Number(p.points || 0);
+        userPoints   && (userPoints.textContent = `${loadedPoints} pkt`);
+        userLevel    && (userLevel.textContent  = calcLevel(loadedPoints));
+      } catch (e) {
+        console.error("[profile] loadProfile:", e);
+        toast("Nie udało się wczytać profilu.", "bg-red-600");
       }
-      if (userPhoto && p.photo_url) userPhoto.src = p.photo_url;
-      loadedPoints = Number(p.points || 0);
-      userPoints.textContent = `${loadedPoints} pkt`;
-      userLevel.textContent = calcLevel(loadedPoints);
     }
 
+    // ───────────────── updateProfile
     form?.addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
-        const filled = ["name","surname","phone","birthdate","gender","preferences"].filter(id => form[id]?.value?.trim()).length;
+        const name        = form.name?.value?.trim() || "";
+        const surname     = form.surname?.value?.trim() || "";
+        const phone       = form.phone?.value?.trim() || "";
+        const birthdate   = form.birthdate?.value ? normalizeDate(form.birthdate.value) : null;
+        const gender      = form.gender?.value || null;
+        const preferences = form.preferences?.value?.trim() || "";
+
+        // bonus за заповнені поля
+        const filled = ["name","surname","phone","birthdate","gender","preferences"]
+          .filter((id) => form[id]?.value?.trim()).length;
         const completionBonus = filled >= 5 ? 20 : 0;
         const nextPoints = Math.max(loadedPoints, completionBonus);
+
         const patch = {
           id: userId,
-          name: form.name.value.trim(),
-          surname: form.surname.value.trim(),
-          phone: form.phone.value.trim(),
-          birthdate: form.birthdate.value || null,
-          gender: form.gender.value || null,
-          preferences: form.preferences.value.trim(),
+          name, surname, phone, birthdate, gender, preferences,
           points: nextPoints
         };
 
+        // avatar upload (опціонально)
         if (photoInput?.files?.[0]) {
           const file = photoInput.files[0];
-          if (!file.type.startsWith("image/")) throw new Error("Plik musi być obrazem");
+          if (!file.type.startsWith("image/")) throw new Error("Plik musi być obrazem.");
           const path = `avatars/${userId}/${Date.now()}-${file.name}`;
-          const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: false });
-          if (uploadError) throw uploadError;
-          const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-          patch.photo_url = publicUrl;
-          userPhoto.src = publicUrl;
+          const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: false });
+          if (upErr) throw upErr;
+          const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+          patch.photo_url = pub.publicUrl;
+          if (userPhoto) userPhoto.src = pub.publicUrl;
         }
 
-        const { error } = await supabase.from("profiles").upsert(patch);
+        const { error } = await supabase.from("profiles").upsert(patch).select("points").single();
         if (error) throw error;
+
         loadedPoints = patch.points;
-        userPoints.textContent = `${loadedPoints} pkt`;
-        userLevel.textContent = calcLevel(loadedPoints);
+        userPoints && (userPoints.textContent = `${loadedPoints} pkt`);
+        userLevel  && (userLevel.textContent  = calcLevel(loadedPoints));
         toast("Profil zaktualizowany! 🎉");
       } catch (err) {
-        console.error(err);
+        console.error("[profile] save:", err);
         toast("Błąd zapisu profilu.", "bg-red-600");
       }
     });
 
+    // prev фото
     userPhoto?.addEventListener("click", () => photoInput?.click());
     photoInput?.addEventListener("change", () => {
-      if (!photoInput.files?.[0]) return;
-      const file = photoInput.files[0];
-      if (!file.type.startsWith("image/")) return;
+      const f = photoInput.files?.[0];
+      if (!f || !f.type.startsWith("image/")) return;
       const reader = new FileReader();
       reader.onload = (e) => (userPhoto.src = e.target.result);
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(f);
     });
 
+    // ───────────────── Events
     async function loadUserEvents() {
-      const { data, error } = await supabase.from("events").select("*").eq("uid", userId).order("date");
-      if (error) return toast("Błąd ładowania wydarzeń", "bg-red-600");
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select("*")
+          .eq("uid", userId)
+          .order("date", { ascending: true });
+        if (error) throw error;
 
-      eventList.innerHTML = "";
-      if (!data?.length) return eventEmpty.classList.remove("hidden");
-      eventEmpty.classList.add("hidden");
+        if (!eventList) return;
+        eventList.innerHTML = "";
 
-      data.forEach(ev => {
-        const el = document.createElement("div");
-        el.className = "border-l-4 pl-4 py-2 mb-3 rounded bg-gradient-to-r from-pink-50 to-blue-50 shadow flex justify-between items-center";
-        el.innerHTML = `
-          <div>
-            <div class="font-bold text-pink-700">${ev.title} <span class="text-xs text-gray-500">(${ev.date})</span></div>
-            <div class="text-sm text-gray-700">Dla: ${ev.person || "—"}</div>
-            <div class="text-xs text-gray-500">${ev.comment ? "Komentarz: " + ev.comment : ""}</div>
-          </div>
-          <button class="text-red-500 hover:text-red-700 ml-2 text-xl event-delete-btn" data-id="${ev.id}">🗑</button>`;
-        eventList.appendChild(el);
-      });
+        if (!data?.length) {
+          eventEmpty && eventEmpty.classList.remove("hidden");
+          return;
+        }
+        eventEmpty && eventEmpty.classList.add("hidden");
 
-      $$(".event-delete-btn").forEach(btn => {
-        btn.onclick = async () => {
-          const id = btn.dataset.id;
-          if (!id || !confirm("Usunąć wydarzenie?")) return;
-          const { error } = await supabase.from("events").delete().eq("id", id).eq("uid", userId);
-          if (error) return toast("Błąd usuwania", "bg-red-600");
-          toast("Usunięto wydarzenie", "bg-red-600");
-          loadUserEvents(); loadUserHistory();
-        };
-      });
+        data.forEach((ev) => {
+          const left = h("div", {}, [
+            h("div", { class: "font-bold text-pink-700" }, [
+              String(ev.title || "Wydarzenie"),
+              " ",
+              h("span", { class: "text-xs text-gray-500" }, `(${ev.date || "—"})`)
+            ]),
+            h("div", { class: "text-sm text-gray-700" }, `Dla: ${ev.person || "—"}`),
+            ev.comment ? h("div", { class: "text-xs text-gray-500" }, `Komentarz: ${ev.comment}`) : null
+          ]);
+
+          const delBtn = h("button", {
+            class: "text-red-500 hover:text-red-700 ml-2 text-xl",
+            title: "Usuń",
+            onClick: async () => {
+              if (!confirm("Usunąć wydarzenie?")) return;
+              const { error: delErr } = await supabase
+                .from("events")
+                .delete()
+                .eq("id", ev.id)
+                .eq("uid", userId);
+              if (delErr) {
+                toast("Błąd usuwania", "bg-red-600");
+              } else {
+                toast("Usunięto wydarzenie", "bg-red-600");
+                loadUserEvents();
+                loadUserHistory();
+              }
+            }
+          }, "🗑");
+
+          const row = h(
+            "div",
+            { class: "border-l-4 pl-4 py-2 mb-3 rounded bg-gradient-to-r from-pink-50 to-blue-50 shadow flex justify-between items-center" },
+            [left, delBtn]
+          );
+
+          eventList.appendChild(row);
+        });
+      } catch (e) {
+        console.error("[events] load:", e);
+        toast("Błąd ładowania wydarzeń", "bg-red-600");
+      }
     }
 
     eventForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const title = eventForm.eventTitle?.value.trim();
-      const date = normalizeDate(eventForm.eventDate?.value);
-      const person = eventForm.eventForWho?.value.trim();
-      const comment = eventForm.eventComment?.value.trim();
-      if (!title || !date) return;
+      const title   = eventForm.eventTitle?.value?.trim();
+      const date    = normalizeDate(eventForm.eventDate?.value);
+      const person  = eventForm.eventForWho?.value?.trim();
+      const comment = eventForm.eventComment?.value?.trim();
 
-      const { error } = await supabase.from("events").insert({ uid: userId, title, person, comment, date, type: "custom" });
-      if (error) return toast("Błąd zapisu wydarzenia", "bg-red-600");
+      if (!title || !date) return toast("Uzupełnij tytuł i datę.", "bg-yellow-600");
+
+      const { error } = await supabase.from("events").insert({
+        uid: userId, title, person, comment, date, type: "custom"
+      });
+      if (error) {
+        toast("Błąd zapisu wydarzenia", "bg-red-600");
+        return;
+      }
 
       if (typeof eventModal?.close === "function") eventModal.close();
       else eventModal?.classList.add("hidden");
+
+      eventForm.reset?.();
       toast("Wydarzenie zapisane!");
       loadUserEvents();
       loadUserHistory();
     });
 
+    // ───────────────── History (ostatnie 5)
     async function loadUserHistory() {
-      const { data, error } = await supabase.from("events").select("*").eq("uid", userId).order("created_at", { ascending: false }).limit(5);
-      historyList.innerHTML = "";
-      if (error || !data?.length) return historyList.innerHTML = "<li>Brak aktywności.</li>";
-      data.forEach(ev => {
-        const li = document.createElement("li");
-        li.textContent = `${ev.title || "Wydarzenie"} (${ev.date || "—"}) – ${ev.person || ""}`;
-        historyList.appendChild(li);
-      });
+      try {
+        if (!historyList) return;
+        const { data, error } = await supabase
+          .from("events")
+          .select("title,date,person,created_at")
+          .eq("uid", userId)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        historyList.innerHTML = "";
+        if (error || !data?.length) {
+          historyList.appendChild(h("li", {}, "Brak aktywności."));
+          return;
+        }
+        data.forEach((ev) => {
+          const li = h("li", {}, `${ev.title || "Wydarzenie"} (${ev.date || "—"}) – ${ev.person || ""}`);
+          historyList.appendChild(li);
+        });
+      } catch (e) {
+        console.error("[history] load:", e);
+      }
     }
 
+    // ───────────────── Referral
     referralBtn?.addEventListener("click", () => {
-      const link = `${location.origin}/?ref=${userId}`;
-      navigator.clipboard.writeText(link)
+      const link = `${location.origin}/?ref=${encodeURIComponent(userId)}`;
+      navigator.clipboard?.writeText(link)
         .then(() => toast("Link polecający skopiowany! ✨"))
         .catch(() => toast("Błąd kopiowania.", "bg-red-600"));
     });
 
-    const channel = supabase.channel("events-realtime").on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "events", filter: `uid=eq.${userId}` },
-      () => { loadUserEvents(); loadUserHistory(); }
-    ).subscribe();
+    // ───────────────── Realtime (opcjonalnie)
+    try {
+      const channel = supabase
+        .channel("events-realtime")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "events", filter: `uid=eq.${userId}` },
+          () => { loadUserEvents(); loadUserHistory(); }
+        )
+        .subscribe();
+      window.addEventListener("beforeunload", () => {
+        try { supabase.removeChannel(channel); } catch {}
+      });
+    } catch (e) {
+      // Якщо edge runtime / без Realtime — тихо ігноруємо
+    }
 
-    window.addEventListener("beforeunload", () => {
-      try { supabase.removeChannel(channel); } catch {}
-    });
-
+    // Initial load
     await loadProfile();
     await loadUserEvents();
     await loadUserHistory();

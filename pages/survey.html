@@ -4,17 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ankieta powitalna — HappyDate</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="color-scheme" content="light dark" />
+
+  <style>
+    @media (prefers-reduced-motion: reduce){ .animate-spin{animation:none!important} }
+  </style>
 </head>
 <body class="bg-gradient-to-br from-pink-100 via-white to-blue-100 dark:from-gray-800 dark:to-gray-900 min-h-screen py-12 px-4">
+
   <div class="max-w-3xl mx-auto text-center">
     <h1 class="text-3xl font-bold mb-2">Opowiedz nam coś o sobie 💌</h1>
     <p class="mb-6 text-sm text-gray-700 dark:text-gray-300">
-      Twoje odpowiedzi pomogą nam lepiej się Tobą zaopiekować. W zamian otrzymasz 20 punktów 🎁
+      Twoje odpowiedzi pomogą nam lepiej się Tobą zaopiekować. W zamian otrzymasz <b>20 punktów</b> 🎁
     </p>
 
-    <form id="survey-form" class="text-left bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl space-y-5" novalidate>
+    <form id="survey-form" class="text-left bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl space-y-5">
       <label class="block">
         <span class="text-sm font-medium">Imię *</span>
         <input type="text" name="firstName" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-700" required />
@@ -83,82 +89,84 @@
         <input type="checkbox" required class="mr-2" /> Zgadzam się na przetwarzanie moich danych zgodnie z polityką prywatności.
       </label>
 
-      <button type="submit" id="submitBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white py-3 px-6 rounded-xl shadow transition">
-        Zapisz ankietę i odbierz 20 punktów 🎁
+      <button id="submitBtn" type="submit" class="w-full bg-pink-500 hover:bg-pink-600 text-white py-3 px-6 rounded-xl shadow transition flex items-center justify-center gap-2">
+        <span class="label">Zapisz ankietę i odbierz 20 punktów 🎁</span>
+        <span class="spinner hidden inline-block w-5 h-5 border-2 border-white/80 border-t-transparent rounded-full animate-spin"></span>
       </button>
     </form>
 
-    <p id="confirmation" class="mt-6 text-green-600 font-medium hidden">Dziękujemy! Twoje odpowiedzi zostały zapisane 💛</p>
+    <p id="confirmation" class="mt-6 text-green-600 font-medium hidden">
+      Dziękujemy! Twoje odpowiedzi zostały zapisane 💛
+    </p>
   </div>
 
-  <!-- 🔑 (opcjonalnie) wstaw swoje klucze globalnie przed modułem:
-  <script>
-    window.SUPABASE_URL = 'https://xxx.supabase.co';
-    window.SUPABASE_ANON_KEY = 'ey...';
-  </script>
-  -->
-
+  <!-- Supabase -->
   <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    import { supabase } from '/src/js/supabaseClient.js';
 
-    // === Konfiguracja Supabase ===
-    const SUPABASE_URL = window.SUPABASE_URL || 'SUPABASE_URL';
-    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'SUPABASE_ANON_KEY';
+    // === KONFIG TABEL (zmień jeśli używasz innych nazw kolumn/tabel) ===
+    const TABLE = 'survey';          // jeśli masz 'surveys' — zmień tutaj
+    const PROFILE_TABLE = 'profiles';
+    const UNIQUE_COL = 'user_id';    // unikalny indeks na цій колонці бажаний
 
-    if (!SUPABASE_URL || SUPABASE_URL === 'SUPABASE_URL' || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'SUPABASE_ANON_KEY') {
-      console.error('Brak konfiguracji Supabase. Ustaw SUPABASE_URL i SUPABASE_ANON_KEY.');
-      alert('Błąd konfiguracji. Skontaktuj się z administratorem.');
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true }
-    });
-
-    // === Pomocnicze ===
-    const form = document.getElementById('survey-form');
-    const confirmation = document.getElementById('confirmation');
-    const submitBtn = document.getElementById('submitBtn');
-
-    const toast = (msg, type = 'success') => {
+    // mini-toast
+    const toast = (msg, ok = true) => {
       const el = document.createElement('div');
-      el.className = `fixed top-4 left-1/2 -translate-x-1/2 ${type === 'error' ? 'bg-red-500' : 'bg-green-600'} text-white px-4 py-2 rounded shadow z-50`;
+      el.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded text-white shadow-lg ' +
+        (ok ? 'bg-green-600' : 'bg-red-600');
       el.textContent = msg;
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 2600);
     };
 
-    // === Sprawdź sesję; jeśli brak — przekieruj na logowanie ===
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session) {
+    // auth required
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       alert('Zaloguj się, aby wypełnić ankietę.');
-      window.location.href = '/pages/login.html';
+      location.href = '/pages/login.html';
+    }
+    const userId = session.user.id;
+
+    // helpers: UI loading
+    const submitBtn = document.getElementById('submitBtn');
+    const btnLabel  = submitBtn?.querySelector('.label');
+    const btnSpin   = submitBtn?.querySelector('.spinner');
+    function setLoading(loading) {
+      submitBtn.disabled = loading;
+      btnLabel.classList.toggle('hidden', loading);
+      btnSpin.classList.toggle('hidden', !loading);
     }
 
-    // === Obsługa wysyłki formularza ===
-    form.addEventListener('submit', async (e) => {
+    // czy już istnieje (żeby nie давати +20 повторно)
+    async function alreadySubmitted() {
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select(UNIQUE_COL)
+        .eq(UNIQUE_COL, userId)
+        .maybeSingle();
+      if (error && error.code !== 'PGRST116') console.warn('[survey] check exists:', error);
+      return !!data;
+    }
+
+    document.getElementById('survey-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const form = e.target;
 
-      // Walidacja prostych pól wymaganych
-      if (!form.reportValidity()) return;
+      const firstName = form.firstName.value.trim();
+      const age = parseInt(form.age.value, 10);
+      const interests = form.interests.value.trim();
 
-      submitBtn.disabled = true;
-      submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
-
-      const { data: authData } = await supabase.auth.getUser();
-      const userId = authData?.user?.id;
-      if (!userId) {
-        toast('Problem z autoryzacją. Zaloguj się ponownie.', 'error');
-        window.location.href = '/pages/login.html';
+      if (!firstName || !Number.isFinite(age) || !interests) {
+        toast('Uzupełnij obowiązkowe pola.', false);
         return;
       }
 
-      // Zbierz dane
       const payload = {
         user_id: userId,
-        first_name: form.firstName.value.trim(),
+        first_name: firstName,
         last_name: form.lastName.value.trim() || null,
-        age: form.age.value ? parseInt(form.age.value, 10) : null,
-        interests: form.interests.value.trim(),
+        age,
+        interests,
         life_pain: form.lifePain.value.trim() || null,
         life_pain_date: form.lifePainDate.value || null,
         gift_emotion: form.giftEmotion.value || null,
@@ -170,61 +178,47 @@
         points_given: 20
       };
 
-      // Nazwy tabel (dopasuj do swojej bazy)
-      const SURVEY_TABLE = 'onboarding_surveys';
-      const PROFILES_TABLE = 'profiles';
+      setLoading(true);
 
       try {
-        // 1) Sprawdź, czy ankieta już istnieje dla użytkownika
-        const { data: existingSurvey, error: existingErr } = await supabase
-          .from(SURVEY_TABLE)
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle();
+        const was = await alreadySubmitted();
 
-        if (existingErr && existingErr.code !== 'PGRST116') {
-          // PGRST116 = no rows
-          throw existingErr;
+        // upsert: wymaga UNIQUE na (user_id). Jeśli nie masz — użyj insert + on conflict w SQL lub dodaj unikalny indeks.
+        const { error: saveErr } = await supabase
+          .from(TABLE)
+          .upsert(payload, { onConflict: UNIQUE_COL });
+        if (saveErr) throw saveErr;
+
+        // Punkty:
+        // 1) Jeśli masz TRIGGER w DB (jak радив), то бали додадуться автоматично.
+        // 2) Якщо триґера немає — накинемо клієнтський інкремент тільки przy pierwszym wypełnieniu.
+        if (!was) {
+          try {
+            const { data: prof, error: pErr } = await supabase
+              .from(PROFILE_TABLE)
+              .select('points')
+              .eq('id', userId)
+              .maybeSingle();
+            if (pErr) throw pErr;
+            const curr = Number(prof?.points || 0);
+            const { error: incErr } = await supabase
+              .from(PROFILE_TABLE)
+              .update({ points: curr + 20 })
+              .eq('id', userId);
+            if (incErr) console.warn('[survey] points inc warn:', incErr);
+          } catch (incE) {
+            console.warn('[survey] client-side points fallback failed:', incE);
+          }
         }
 
-        const alreadyCompleted = !!existingSurvey;
-
-        // 2) Zapis/aktualizacja ankiety (upsert po user_id)
-        const { error: upsertErr } = await supabase
-          .from(SURVEY_TABLE)
-          .upsert(payload, { onConflict: 'user_id' });
-
-        if (upsertErr) throw upsertErr;
-
-        // 3) Przyznaj punkty tylko za pierwsze wypełnienie
-        if (!alreadyCompleted) {
-          // Pobierz aktualne punkty
-          let currentPoints = 0;
-          const { data: prof, error: profErr } = await supabase
-            .from(PROFILES_TABLE)
-            .select('points')
-            .eq('id', userId)
-            .maybeSingle();
-
-          if (profErr && profErr.code !== 'PGRST116') throw profErr;
-          currentPoints = prof?.points ?? 0;
-
-          const { error: pointsErr } = await supabase
-            .from(PROFILES_TABLE)
-            .upsert({ id: userId, points: currentPoints + 20 });
-
-          if (pointsErr) throw pointsErr;
-        }
-
-        confirmation.classList.remove('hidden');
-        toast('Ankieta zapisana. Dziękujemy! ✅');
+        document.getElementById('confirmation')?.classList.remove('hidden');
         form.reset();
+        toast('Ankieta zapisana. Dziękujemy! 💛');
       } catch (err) {
-        console.error('Błąd zapisu ankiety:', err);
-        toast('Coś poszło nie tak. Spróbuj ponownie później.', 'error');
+        console.error('[survey] save error:', err);
+        toast('Coś poszło nie tak. Spróbuj ponownie.', false);
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+        setLoading(false);
       }
     });
   </script>

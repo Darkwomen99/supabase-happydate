@@ -15,16 +15,14 @@
   <!-- Open Graph -->
   <meta property="og:title" content="HappyDate - Magiczne prezenty na każdą okazję" />
   <meta property="og:description" content="Zaskocz bliskich wyjątkowymi prezentami i nie zapomnij o ważnych chwilach!" />
-  <!-- TODO: zamień na swój baner w /public/img/ gdy dodasz plik -->
   <meta property="og:image" content="/public/img/11.png" />
   <meta property="og:url" content="https://www.happydate.pl/" />
   <meta property="og:type" content="website" />
 
-  <!-- Favicon (tymczasowo korzystamy z istniejących plików w /public/img/) -->
-  <!-- TODO: dodaj własne favicony do /public/img/ i zaktualizuj ścieżki -->
+  <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="/public/img/11.png">
 
-  <!-- Tailwind CSS (bez defer, by uniknąć FOUC z CDN) -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- i18n -->
@@ -71,14 +69,24 @@
         >✨</button>
       </div>
 
-      <button
-        id="mobile-menu-toggle"
-        class="text-white text-3xl sm:hidden p-2 rounded hover:bg-white/10 focus:ring-2 focus:ring-cyan-300 transition"
-        aria-label="Menu"
-        aria-controls="mobile-menu"
-        aria-expanded="false"
-        type="button"
-      >☰</button>
+      <!-- Right controls on small screens -->
+      <div class="flex items-center gap-2 sm:hidden">
+        <!-- Theme toggle (mobile visible too) -->
+        <button id="theme-toggle"
+          class="px-3 py-2 rounded border bg-white/10 text-white hover:bg-white/20 transition"
+          type="button" aria-label="Przełącz motyw">
+          <span id="theme-icon">🌙</span>
+        </button>
+
+        <button
+          id="mobile-menu-toggle"
+          class="text-white text-3xl p-2 rounded hover:bg-white/10 focus:ring-2 focus:ring-cyan-300 transition"
+          aria-label="Menu"
+          aria-controls="mobile-menu"
+          aria-expanded="false"
+          type="button"
+        >☰</button>
+      </div>
     </div>
 
     <!-- Desktop nav -->
@@ -87,10 +95,13 @@
         <div class="flex gap-4 md:gap-6 items-center">
           <a href="/index.html" data-i18n="header.home" tabindex="0"
              class="px-1 py-0.5 rounded bg-white/20 underline font-semibold focus:bg-white/30 transition">Strona główna</a>
+
+          <!-- IMPORTANT: added id="dashboard-link" -->
+          <a href="/pages/dashboard.html" data-i18n="header.dashboard" tabindex="0" id="dashboard-link"
+             class="px-1 py-0.5 rounded hover:bg-white/20 focus:bg-white/30 transition">Moje wydarzenia</a>
+
           <a href="/pages/services.html" data-i18n="header.services" tabindex="0"
              class="px-1 py-0.5 rounded hover:bg-white/20 focus:bg-white/30 transition">Usługi</a>
-          <a href="/pages/dashboard.html" data-i18n="header.dashboard" tabindex="0"
-             class="px-1 py-0.5 rounded hover:bg-white/20 focus:bg-white/30 transition">Moje wydarzenia</a>
           <a href="/pages/partnerstwo.html" data-i18n="header.partner" tabindex="0"
              class="px-1 py-0.5 rounded hover:bg-white/20 focus:bg-white/30 transition">Partnerstwo</a>
           <a href="/pages/about.html" data-i18n="header.about" tabindex="0"
@@ -99,7 +110,7 @@
              class="px-1 py-0.5 rounded hover:bg-white/20 focus:bg-white/30 transition">Opinie</a>
         </div>
 
-        <!-- Right side: language + auth -->
+        <!-- Right side: language + theme + auth (desktop) -->
         <div class="flex gap-3 items-center flex-wrap">
 
           <!-- Language -->
@@ -119,21 +130,34 @@
             <div id="langDropdown"
               class="absolute right-0 mt-2 bg-white shadow-xl rounded-xl z-50 py-2 min-w-[150px] hidden text-left transition-all duration-200 scale-95 opacity-0 origin-top-right"
               role="menu">
-              <button class="flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition" data-lang="pl" role="menuitem" tabindex="-1" aria-label="Polski"><span>🇵🇱</span> Polski</button>
-              <button class="flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition" data-lang="ua" role="menuitem" tabindex="-1" aria-label="Українська"><span>🇺🇦</span> Українська</button>
-              <button class="flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition" data-lang="en" role="menuitem" tabindex="-1" aria-label="English"><span>🇬🇧</span> English</button>
-              <button class="flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition" data-lang="ru" role="menuitem" tabindex="-1" aria-label="Русский"><span>🇷🇺</span> Русский</button>
-              <button class="flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition" data-lang="de" role="menuitem" tabindex="-1" aria-label="Deutsch"><span>🇩🇪</span> Deutsch</button>
+              <!-- IMPORTANT: add class="lang-btn" so main.js picks them -->
+              <button class="lang-btn flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition"
+                      data-lang="pl" role="menuitem" tabindex="-1" aria-label="Polski"><span>🇵🇱</span> Polski</button>
+              <button class="lang-btn flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition"
+                      data-lang="ua" role="menuitem" tabindex="-1" aria-label="Українська"><span>🇺🇦</span> Українська</button>
+              <button class="lang-btn flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition"
+                      data-lang="en" role="menuitem" tabindex="-1" aria-label="English"><span>🇬🇧</span> English</button>
+              <button class="lang-btn flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition"
+                      data-lang="ru" role="menuitem" tabindex="-1" aria-label="Русский"><span>🇷🇺</span> Русский</button>
+              <button class="lang-btn flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition"
+                      data-lang="de" role="menuitem" tabindex="-1" aria-label="Deutsch"><span>🇩🇪</span> Deutsch</button>
             </div>
           </div>
+
+          <!-- Theme toggle (desktop) -->
+          <button id="theme-toggle"
+            class="px-3 py-2 rounded border bg-white/10 text-white hover:bg-white/20 transition"
+            type="button" aria-label="Przełącz motyw">
+            <span id="theme-icon">🌙</span>
+          </button>
 
           <!-- Auth shortcuts (desktop) -->
           <a href="/pages/login.html"
              id="login-link"
-             class="px-3 py-1.5 rounded-xl bg-white text-blue-700 font-semibold text-sm transition hover:bg-blue-50 hidden">Zaloguj się</a>
+             class="px-3 py-1.5 rounded-xl bg-white text-blue-700 font-semibold text-sm transition hover:bg-blue-50">Zaloguj się</a>
           <a href="/pages/register.html"
              id="register-link"
-             class="px-3 py-1.5 rounded-xl bg-white/10 text-white font-semibold text-sm transition hover:bg-white/20 hidden">Rejestracja</a>
+             class="px-3 py-1.5 rounded-xl bg-white/10 text-white font-semibold text-sm transition hover:bg-white/20">Rejestracja</a>
 
           <!-- User avatar -->
           <a href="/pages/profile.html" id="user-avatar-link" class="hidden" aria-label="Mój profil">
@@ -157,8 +181,8 @@
     <div id="mobile-menu" class="sm:hidden hidden mt-4 text-white space-y-3" aria-label="Menu mobilne">
       <div class="flex flex-col gap-2">
         <a href="/index.html" tabindex="0">Strona główna</a>
+        <a href="/pages/dashboard.html" tabindex="0" id="dashboard-link-mobile" class="hidden px-2 py-1 rounded bg-green-600 text-white font-semibold text-center transition hover:bg-green-700">Panel użytkownika</a>
         <a href="/pages/services.html" tabindex="0">Usługi</a>
-        <a href="/pages/dashboard.html" tabindex="0">Moje wydarzenia</a>
         <a href="/pages/partnerstwo.html" tabindex="0">Partnerstwo</a>
         <a href="/pages/about.html" tabindex="0">O nas</a>
         <a href="/pages/reviews.html" tabindex="0">Opinie</a>
@@ -173,7 +197,6 @@
       <div id="auth-buttons-mobile" class="flex flex-col gap-2 mt-3">
         <a href="/pages/register.html" id="register-link-mobile" class="px-3 py-1 rounded bg-white text-blue-600 font-semibold text-center transition hover:bg-blue-100">Rejestracja</a>
         <a href="/pages/login.html" id="login-link-mobile" class="px-3 py-1 rounded bg-white text-blue-600 font-semibold text-center transition hover:bg-blue-100">Zaloguj się</a>
-        <a href="/pages/profile.html" id="dashboard-link-mobile" class="hidden px-3 py-1 rounded bg-green-600 text-white font-semibold text-center transition hover:bg-green-700">Panel użytkownika</a>
         <button id="logout-btn-mobile" class="hidden px-3 py-1 rounded bg-red-600 text-white font-semibold text-center transition hover:bg-red-700" type="button">Wyloguj się</button>
       </div>
     </div>
@@ -186,8 +209,8 @@
     <h3 class="text-lg font-bold">Krótka zapowiedź</h3>
     <p class="text-sm text-gray-600 dark:text-gray-300">Ciepło, emocje i prezenty — odkryj HappyDate w 30 sekund 💛</p>
     <audio controls class="w-full">
-      <!-- TODO: podmień na istniejący plik w /public/audio/ -->
-      <source src="/public/audio/ElevenLabs_2025-04-09T21_13_18....mp3" type="audio/mpeg" />
+      <!-- podmień na istniejący plik -->
+      <source src="/public/audio/ElevenLabs_2025-04-09T21_13_18.mp3" type="audio/mpeg" />
       Twoja przeglądarka nie wspiera audio.
     </audio>
     <div class="flex justify-end">
@@ -235,8 +258,7 @@
     if(e.key==='Home'){ e.preventDefault(); items[0]?.focus(); }
     if(e.key==='End'){ e.preventDefault(); items.at(-1)?.focus(); }
   });
-  qsa('#langDropdown [role="menuitem"]').forEach(btn=> btn.addEventListener('click', ()=>{ localStorage.setItem('lang', btn.getAttribute('data-lang')); updateLangFlag(); closeMenu(); location.reload(); }));
-  qsa('#mobile-menu .lang-btn').forEach(btn=> btn.addEventListener('click', ()=>{ localStorage.setItem('lang', btn.getAttribute('data-lang')); updateLangFlag(); location.reload(); }));
+  // ВАЖЛИВО: НЕ вішаємо тут кліки для зміни мови — цим займається /src/js/main.js через .lang-btn
 })();
 </script>
 
@@ -250,6 +272,7 @@
       aria-controls="helpPopup"
       aria-expanded="false"
       type="button"
+      onclick="document.getElementById('helpPopup').classList.toggle('hidden')"
     >📞</button>
 
     <div
@@ -396,7 +419,6 @@
   <div class="max-w-6xl mx-auto px-4">
     <h3 class="text-2xl font-semibold text-center mb-12" data-i18n="gifts.title">🎁 Przykładowe prezenty</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 min-w-0">
-      <!-- TODO: podmień na swoje realne zdjęcia w /public/img/ -->
       <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow text-center group hover:shadow-xl transition-shadow duration-300">
         <img src="/public/img/money.png" alt="Zestaw prezentowy — przykład 1"
              class="rounded mb-3 w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
@@ -432,7 +454,7 @@
   </div>
 </footer>
 
-<!-- Main JS -->
+<!-- Main JS (must be after i18n/AOS) -->
 <script src="/src/js/main.js" defer></script>
 
 <!-- Chatbot -->
@@ -535,20 +557,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (i18next.exists(key)) el.innerHTML = t(key);
       });
     });
-
-  document.querySelectorAll(".lang-btn").forEach(btn => {
-    btn.addEventListener("click", function () {
-      const lang = this.getAttribute("data-lang");
-      if (!supportedLangs.includes(lang)) return;
-      localStorage.setItem("lang", lang);
-      i18next.changeLanguage(lang).then(() => {
-        document.querySelectorAll("[data-i18n]").forEach(el => {
-          const key = el.getAttribute("data-i18n");
-          if (i18next.exists(key)) el.innerHTML = i18next.t(key);
-        });
-      });
-    });
-  });
 })();
 </script>
 
@@ -577,14 +585,14 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-<!-- ===== Supabase: header auth UI (opcjonalnie, gdy masz /src/js/auth.js i supabaseClient.js) ===== -->
+<!-- ===== Supabase: header auth UI (optional) ===== -->
 <script type="module">
   let supabase;
   try {
     ({ supabase } = await import('/src/js/supabaseClient.js'));
     await import('/src/js/auth.js').catch(()=>{});
   } catch(e) {
-    console.warn('[supabase] pominięto — brak klienta lub w trybie standalone');
+    console.warn('[supabase] pominięto — brak klienta lub tryb standalone');
   }
 
   const $ = (s, r = document) => r.querySelector(s);

@@ -5,13 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Test logowania – HappyDate (Supabase)</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Завантажимо публічні env (Vercel function) ДО клієнта -->
-  <script>
-    window.env = {};
-    fetch('/api/env').then(r=>r.json()).then(e => window.env = e);
-  </script>
-
   <style>
     html,body{height:100%}
     .log-line{white-space:pre-wrap}
@@ -22,7 +15,8 @@
   <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6">
     <h1 class="text-2xl font-bold mb-1 text-center">🔐 Test logowania (Supabase)</h1>
     <p class="text-sm text-gray-500 text-center mb-6">
-      Magic link + e-mail/hasło. Редірект повернення — на <code class="bg-gray-100 px-1 rounded">/index.html</code>.
+      Magic link, e-mail/hasło i Google OAuth. Powrót po logowaniu na
+      <code class="bg-gray-100 px-1 rounded">/index.html</code>.
     </p>
 
     <label class="block mb-2">
@@ -44,6 +38,12 @@
       <button id="btn-reset"  class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg">Reset hasła</button>
     </div>
 
+    <!-- Google OAuth -->
+    <button id="btn-google" class="w-full mb-4 border border-gray-300 hover:bg-gray-50 px-3 py-2 rounded-lg flex items-center justify-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.602 32.91 29.223 36 24 36c-6.627 0-12-5.373-12-12S17.373 12 24 12c3.059 0 5.842 1.153 7.961 3.039l5.657-5.657C34.676 6.023 29.607 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.57 16.154 18.922 12 24 12c3.059 0 5.842 1.153 7.961 3.039l5.657-5.657C34.676 6.023 29.607 4 24 4 16.318 4 9.642 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.197l-6.196-5.238C29.145 35.941 26.705 37 24 37c-5.187 0-9.549-3.367-11.136-7.999l-6.56 5.053C9.62 39.556 16.316 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.062 3.072-3.325 5.551-6.09 6.565l.001-.001 6.196 5.238C33.145 40.025 38 36 38 24c0-1.341-.138-2.651-.389-3.917z"/></svg>
+      Zaloguj przez Google
+    </button>
+
     <div class="flex gap-2 mb-4">
       <button id="btn-session" class="flex-1 border px-3 py-2 rounded-lg">Pokaż session()</button>
       <button id="btn-logout"  class="flex-1 border px-3 py-2 rounded-lg">Wyloguj</button>
@@ -58,17 +58,11 @@
       <div class="text-xs text-gray-500 mb-1">Log:</div>
       <div id="log" class="space-y-1 text-sm max-h-48 overflow-auto"></div>
     </div>
-
-    <p class="text-[11px] text-gray-500 mt-4">
-      Upewnij się, że w <em>Authentication → URL Configuration</em> masz dodane:
-      <code class="bg-gray-100 px-1 rounded">https://happydate.vercel.app</code> i
-      <code class="bg-gray-100 px-1 rounded">http://localhost:3000</code>.
-    </p>
   </div>
 
   <!-- Supabase client (ESM) -->
   <script type="module">
-    import { supabase } from '/js/supabaseClient.js';
+    import { supabase } from '/src/js/supabaseClient.js';
 
     const $ = (sel) => document.querySelector(sel);
     const emailEl = $('#email');
@@ -104,74 +98,93 @@
       const code = url.searchParams.get('code');
       if (code) {
         log('Znaleziono ?code=..., wymieniam na session...');
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) { log(`exchangeCodeForSession: ${error.message}`, 'error'); }
-        else { log('Sesja utworzona z kodu ✅'); }
-        // Приберемо code з URL
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) log(`exchangeCodeForSession: ${error.message}`, 'error');
+        else log('Sesja utworzona z kodu ✅');
+
         url.searchParams.delete('code');
+        url.searchParams.delete('error_description');
         history.replaceState({}, document.title, url.pathname);
       }
     };
 
     // Слухач змін auth
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((_event) => {
       log(`Auth event: ${_event}`);
       showSession();
     });
 
-    // Кнопки
+    // Magic link
     $('#btn-magic')?.addEventListener('click', async () => {
       const email = emailEl.value.trim();
       if (!email) return alert('Podaj email');
       log(`Wysyłam magic link na ${email}...`);
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: `${location.origin}/index.html` }
       });
-      if (error) return log(`signInWithOtp error: ${error.message}`, 'error');
-      log('Sprawdź skrzynkę ✉️ (link ważny krótko).');
+      if (error) log(`signInWithOtp error: ${error.message}`, 'error');
+      else log('Sprawdź skrzynkę ✉️ (link ważny krótko).');
     });
 
+    // Rejestracja (hasło)
     $('#btn-signup')?.addEventListener('click', async () => {
       const email = emailEl.value.trim();
       const password = passEl.value;
       if (!email || !password) return alert('Email i hasło wymagane');
       log(`Rejestracja ${email}...`);
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email, password,
         options: { emailRedirectTo: `${location.origin}/index.html` }
       });
-      if (error) return log(`signUp error: ${error.message}`, 'error');
-      log('Konto utworzone. Jeśli włączona weryfikacja e-mail — sprawdź pocztę ✉️.');
+      if (error) log(`signUp error: ${error.message}`, 'error');
+      else log('Konto utworzone. Jeśli włączona weryfikacja e-mail — sprawdź pocztę ✉️.');
     });
 
+    // Logowanie (hasło)
     $('#btn-signin')?.addEventListener('click', async () => {
       const email = emailEl.value.trim();
       const password = passEl.value;
       if (!email || !password) return alert('Email i hasło wymagane');
       log(`Logowanie ${email}...`);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return log(`signInWithPassword error: ${error.message}`, 'error');
-      log('Zalogowano ✅');
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) log(`signInWithPassword error: ${error.message}`, 'error');
+      else log('Zalogowano ✅');
     });
 
+    // Reset hasła
     $('#btn-reset')?.addEventListener('click', async () => {
       const email = emailEl.value.trim();
       if (!email) return alert('Podaj email');
       log(`Reset hasła dla ${email}...`);
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${location.origin}/pages/login.html`
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${location.origin}/pages/reset-password.html`
       });
-      if (error) return log(`resetPasswordForEmail error: ${error.message}`, 'error');
-      log('Sprawdź skrzynkę ✉️ (link do resetu).');
+      if (error) log(`resetPasswordForEmail error: ${error.message}`, 'error');
+      else log('Sprawdź skrzynkę ✉️ (link do resetu).');
+    });
+
+    // Google OAuth
+    $('#btn-google')?.addEventListener('click', async () => {
+      log('Przekierowuję do Google OAuth…');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${location.origin}/index.html`,
+          queryParams: { prompt: 'select_account' } // щоб зручно міняти обліковку
+          // за потреби: scopes: 'openid email profile https://www.googleapis.com/auth/userinfo.profile'
+        }
+      });
+      if (error) log(`Google OAuth error: ${error.message}`, 'error');
+      // Далі буде редірект на Google → повернення з ?code=...
     });
 
     $('#btn-session')?.addEventListener('click', showSession);
 
     $('#btn-logout')?.addEventListener('click', async () => {
       const { error } = await supabase.auth.signOut();
-      if (error) return log(`signOut error: ${error.message}`, 'error');
-      log('Wylogowano 👋');
+      if (error) log(`signOut error: ${error.message}`, 'error');
+      else log('Wylogowano 👋');
     });
 
     // Старт
