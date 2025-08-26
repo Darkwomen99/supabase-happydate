@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# 📦 Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +8,32 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# 🧪 Testing
 /coverage
 
-# next.js
+# ⚡ Next.js
 /.next/
 /out/
 
-# production
+# 🚀 Production build
 /build
 
-# misc
+# 🗂️ Misc
 .DS_Store
 *.pem
 
-# debug
+# 🐞 Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# 🔑 Env files (зазвичай не пушимо, якщо тільки не потрібно свідомо)
+/.env*
 
-# vercel
+# ▲ Vercel
 .vercel
 
-# typescript
+# 📝 TypeScript
 *.tsbuildinfo
 next-env.d.ts
