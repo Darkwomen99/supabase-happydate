@@ -1,0 +1,39 @@
+{
+  "header": {
+    "home": "Home",
+    "services": "Services",
+    "dashboard": "My Events",
+    "partner": "Partnership",
+    "about": "About",
+    "reviews": "Reviews",
+    "profile": "Profile"
+  },
+  "reviews": {
+    "title": "User Reviews 💬",
+    "hero": "Your feedback makes HappyDate better and even more magical! Share your emotions — they matter to us!",
+    "formTitle": "Add your review",
+    "listTitle": "Your reviews:"
+  },
+  "profile": {
+    "name": "First Name",
+    "surname": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "birthdate": "Birthdate",
+    "gender": "Gender",
+    "preferences": "Preferences",
+    "save": "Save profile"
+  },
+  "dashboard": {
+    "title": "My Events",
+    "addEvent": "Add Event",
+    "upcoming": "Upcoming Events"
+  },
+  "footer": {
+    "text": "© 2025 HappyDate. Creating unforgettable moments with love."
+  },
+  "cookies": {
+    "text": "This site uses cookies to improve your experience. By continuing, you agree to our Privacy Policy.",
+    "accept": "Accept"
+  }
+}

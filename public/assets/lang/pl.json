@@ -1,0 +1,39 @@
+{
+  "header": {
+    "home": "Strona główna",
+    "services": "Usługi",
+    "dashboard": "Moje wydarzenia",
+    "partner": "Partnerstwo",
+    "about": "O nas",
+    "reviews": "Opinie",
+    "profile": "Profil"
+  },
+  "reviews": {
+    "title": "Opinie naszych użytkowników 💬",
+    "hero": "Twoja opinia sprawia, że HappyDate staje się lepszy i jeszcze bardziej magiczny! Podziel się emocjami — dla nas to ważne!",
+    "formTitle": "Dodaj swoją opinię",
+    "listTitle": "Twoje opinie:"
+  },
+  "profile": {
+    "name": "Imię",
+    "surname": "Nazwisko",
+    "email": "Email",
+    "phone": "Telefon",
+    "birthdate": "Data urodzenia",
+    "gender": "Płeć",
+    "preferences": "Preferencje",
+    "save": "Zapisz profil"
+  },
+  "dashboard": {
+    "title": "Moje wydarzenia",
+    "addEvent": "Dodaj wydarzenie",
+    "upcoming": "Nadchodzące wydarzenia"
+  },
+  "footer": {
+    "text": "© 2025 HappyDate. Z miłością tworzymy niezapomniane chwile."
+  },
+  "cookies": {
+    "text": "Ta strona używa plików cookies, by ulepszyć Twój komfort. Korzystając dalej z serwisu, akceptujesz naszą Politykę Prywatności.",
+    "accept": "Akceptuję"
+  }
+}

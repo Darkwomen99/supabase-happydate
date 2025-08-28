@@ -2,7 +2,7 @@
 import { supabase } from "/src/js/supabaseClient.js";
 
 (() => {
-  // ───────────────────────────────── Helpers
+  /* ───────────────────────────── helpers ───────────────────────────── */
   const $  = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
@@ -18,22 +18,25 @@ import { supabase } from "/src/js/supabaseClient.js";
     points >= 100 ? "Ekspert" : points >= 40 ? "Znawca" : points >= 20 ? "Entuzjasta" : "Nowicjusz";
 
   const normalizeDate = (str) => {
-    const d = String(str || "").trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+    const v = String(str || "").trim();
+    if (!v) return null;
+    // приймаємо тільки YYYY-MM-DD
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+    // додаткова валідація
+    const d = new Date(v);
+    return Number.isNaN(+d) ? null : v;
   };
 
-  // маленький конструктор елементів (щоб не ліпити innerHTML)
+  // невеличкий фабрикатор: безпечний (без innerHTML)
   const h = (tag, props = {}, children = []) => {
     const el = document.createElement(tag);
-    Object.entries(props).forEach(([k, v]) => {
+    for (const [k, v] of Object.entries(props)) {
       if (k === "class") el.className = v;
       else if (k === "dataset") Object.assign(el.dataset, v);
       else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
       else if (k in el) el[k] = v;
       else el.setAttribute(k, v);
-    });
+    }
     (Array.isArray(children) ? children : [children]).forEach((c) => {
       if (c == null) return;
       if (typeof c === "string") el.appendChild(document.createTextNode(c));
@@ -42,35 +45,8 @@ import { supabase } from "/src/js/supabaseClient.js";
     return el;
   };
 
-  // ───────────────────────────────── Main
+  /* ───────────────────────────── main ───────────────────────────── */
   document.addEventListener("DOMContentLoaded", async () => {
-    // Lang dropdown (простенько, без перезавантаження якщо є i18n)
-    const langBtn = $("#langDropdownBtn"), langDD = $("#langDropdown"), langFlag = $("#langFlag");
-    const langMap = { pl: "🇵🇱", ua: "🇺🇦", en: "🇬🇧", ru: "🇷🇺", de: "🇩🇪" };
-    const getLang = () =>
-      window.i18n?.getLang?.() ||
-      localStorage.getItem("lang") ||
-      (navigator.language || "pl").slice(0, 2);
-    const setFlag = () => langFlag && (langFlag.textContent = langMap[getLang()] || "🌐");
-    setFlag();
-    langBtn?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      langDD?.classList.toggle("hidden");
-    });
-    document.addEventListener("click", () => langDD?.classList.add("hidden"));
-    langDD?.querySelectorAll("button[data-lang]").forEach((b) => {
-      b.addEventListener("click", async () => {
-        const lng = b.dataset.lang;
-        if (window.i18n?.setLang) {
-          await window.i18n.setLang(lng, { persist: true });
-          setFlag();
-        } else {
-          localStorage.setItem("lang", lng);
-          location.reload();
-        }
-      });
-    });
-
     // Auth gate
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
@@ -79,8 +55,16 @@ import { supabase } from "/src/js/supabaseClient.js";
     }
     const userId = session.user.id;
 
-    // UI refs
+    // UI refs — завжди через #id, не через form.<name>
     const form          = $("#profile-form");
+    const nameInput     = $("#name");
+    const surnameInput  = $("#surname");
+    const emailInput    = $("#email");
+    const phoneInput    = $("#phone");
+    const birthdateInput= $("#birthdate");
+    const genderSelect  = $("#gender");
+    const prefTextarea  = $("#preferences");
+
     const photoInput    = $("#photoFile");
     const userPhoto     = $("#user-photo");
     const userPoints    = $("#userPoints");
@@ -95,47 +79,57 @@ import { supabase } from "/src/js/supabaseClient.js";
     const historyList   = $("#history-list");
     const referralBtn   = $("#referral-btn");
 
+    // Lang dropdown (легкий init; не ламає, якщо i18n відсутній)
+    const langBtn  = $("#langDropdownBtn");
+    const langDD   = $("#langDropdown");
+    const langFlag = $("#langFlag");
+    const langMap  = { pl: "🇵🇱", ua: "🇺🇦", en: "🇬🇧", ru: "🇷🇺", de: "🇩🇪" };
+    const getLang  = () => window.i18n?.getLang?.() || localStorage.getItem("lang") || (navigator.language || "pl").slice(0, 2);
+    const setFlag  = () => { if (langFlag) langFlag.textContent = langMap[getLang()] || "🌐"; };
+    setFlag();
+    langBtn?.addEventListener("click", (e) => { e.stopPropagation(); langDD?.classList.toggle("hidden"); });
+    document.addEventListener("click", () => langDD?.classList.add("hidden"));
+    langDD?.querySelectorAll("button[data-lang]")?.forEach((b) => {
+      b.addEventListener("click", async () => {
+        const lng = b.dataset.lang;
+        if (window.i18n?.setLang) { await window.i18n.setLang(lng, { persist: true }); setFlag(); }
+        else { localStorage.setItem("lang", lng); location.reload(); }
+      });
+    });
+
     // Logout
     logoutBtn?.addEventListener("click", async () => {
-      try {
-        await supabase.auth.signOut();
-        toast("Wylogowano ✅");
-      } finally {
-        setTimeout(() => (location.href = "/pages/login.html"), 600);
-      }
+      try { await supabase.auth.signOut(); toast("Wylogowano ✅"); }
+      finally { setTimeout(() => (location.href = "/pages/login.html"), 600); }
     });
 
     let loadedPoints = 0;
 
-    // ───────────────── loadProfile
+    /* ───────────── profile: load ───────────── */
     async function loadProfile() {
       try {
-        const { data: prof, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .maybeSingle();
+        const [{ data: prof, error }, userRes] = await Promise.all([
+          supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+          supabase.auth.getUser()
+        ]);
         if (error) throw error;
 
-        const { data: u } = await supabase.auth.getUser();
-
         const p = prof || {};
-        if (form) {
-          // guardy на випадок відсутніх полів у розмітці
-          form.name       && (form.name.value       = p.name || "");
-          form.surname    && (form.surname.value    = p.surname || "");
-          form.email      && (form.email.value      = u?.user?.email || "");
-          form.phone      && (form.phone.value      = p.phone || "");
-          form.birthdate  && (form.birthdate.value  = p.birthdate || "");
-          form.gender     && (form.gender.value     = p.gender || "");
-          form.preferences&& (form.preferences.value= p.preferences || "");
-        }
+        const email = userRes?.data?.user?.email || "";
+
+        if (nameInput)     nameInput.value = p.name || "";
+        if (surnameInput)  surnameInput.value = p.surname || "";
+        if (emailInput)    emailInput.value = email;
+        if (phoneInput)    phoneInput.value = p.phone || "";
+        if (birthdateInput)birthdateInput.value = p.birthdate || "";
+        if (genderSelect)  genderSelect.value = p.gender || "";
+        if (prefTextarea)  prefTextarea.value = p.preferences || "";
 
         const avatar =
           p.photo_url ||
           session.user.user_metadata?.avatar_url ||
           session.user.user_metadata?.picture ||
-          "/public/img/11.png";
+          "https://api.dicebear.com/8.x/fun-emoji/svg?seed=gift";
         if (userPhoto) {
           userPhoto.src = avatar;
           userPhoto.alt = p.name ? `${p.name} — avatar` : "Profil użytkownika";
@@ -143,43 +137,40 @@ import { supabase } from "/src/js/supabaseClient.js";
         }
 
         loadedPoints = Number(p.points || 0);
-        userPoints   && (userPoints.textContent = `${loadedPoints} pkt`);
-        userLevel    && (userLevel.textContent  = calcLevel(loadedPoints));
+        if (userPoints) userPoints.textContent = `${loadedPoints} pkt`;
+        if (userLevel)  userLevel.textContent  = calcLevel(loadedPoints);
       } catch (e) {
         console.error("[profile] loadProfile:", e);
         toast("Nie udało się wczytać profilu.", "bg-red-600");
       }
     }
 
-    // ───────────────── updateProfile
+    /* ───────────── profile: save ───────────── */
     form?.addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
-        const name        = form.name?.value?.trim() || "";
-        const surname     = form.surname?.value?.trim() || "";
-        const phone       = form.phone?.value?.trim() || "";
-        const birthdate   = form.birthdate?.value ? normalizeDate(form.birthdate.value) : null;
-        const gender      = form.gender?.value || null;
-        const preferences = form.preferences?.value?.trim() || "";
+        const name        = nameInput?.value?.trim() || "";
+        const surname     = surnameInput?.value?.trim() || "";
+        const phone       = phoneInput?.value?.trim() || "";
+        const birthdate   = normalizeDate(birthdateInput?.value);
+        const gender      = (genderSelect?.value || "") || null;
+        const preferences = prefTextarea?.value?.trim() || "";
 
-        // bonus за заповнені поля
-        const filled = ["name","surname","phone","birthdate","gender","preferences"]
-          .filter((id) => form[id]?.value?.trim()).length;
-        const completionBonus = filled >= 5 ? 20 : 0;
-        const nextPoints = Math.max(loadedPoints, completionBonus);
+        // простий бонус за заповнення (одноразово піднімаємо до 20, якщо було менше)
+        const filledCount = [name, surname, phone, birthdate, gender, preferences].filter(Boolean).length;
+        const completionBonus = filledCount >= 5 ? 20 : 0;
+        const nextPoints = loadedPoints < completionBonus ? completionBonus : loadedPoints;
 
-        const patch = {
-          id: userId,
-          name, surname, phone, birthdate, gender, preferences,
-          points: nextPoints
-        };
+        const patch = { id: userId, name, surname, phone, birthdate, gender, preferences, points: nextPoints };
 
-        // avatar upload (опціонально)
+        // avatar upload (опційно)
         if (photoInput?.files?.[0]) {
           const file = photoInput.files[0];
           if (!file.type.startsWith("image/")) throw new Error("Plik musi być obrazem.");
           const path = `avatars/${userId}/${Date.now()}-${file.name}`;
-          const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: false });
+          const { error: upErr } = await supabase.storage
+            .from("avatars")
+            .upload(path, file, { upsert: false, contentType: file.type, cacheControl: "31536000" });
           if (upErr) throw upErr;
           const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
           patch.photo_url = pub.publicUrl;
@@ -190,8 +181,8 @@ import { supabase } from "/src/js/supabaseClient.js";
         if (error) throw error;
 
         loadedPoints = patch.points;
-        userPoints && (userPoints.textContent = `${loadedPoints} pkt`);
-        userLevel  && (userLevel.textContent  = calcLevel(loadedPoints));
+        if (userPoints) userPoints.textContent = `${loadedPoints} pkt`;
+        if (userLevel)  userLevel.textContent  = calcLevel(loadedPoints);
         toast("Profil zaktualizowany! 🎉");
       } catch (err) {
         console.error("[profile] save:", err);
@@ -199,7 +190,7 @@ import { supabase } from "/src/js/supabaseClient.js";
       }
     });
 
-    // prev фото
+    // avatar preview
     userPhoto?.addEventListener("click", () => photoInput?.click());
     photoInput?.addEventListener("change", () => {
       const f = photoInput.files?.[0];
@@ -209,7 +200,7 @@ import { supabase } from "/src/js/supabaseClient.js";
       reader.readAsDataURL(f);
     });
 
-    // ───────────────── Events
+    /* ───────────── events: list ───────────── */
     async function loadUserEvents() {
       try {
         const { data, error } = await supabase
@@ -220,7 +211,7 @@ import { supabase } from "/src/js/supabaseClient.js";
         if (error) throw error;
 
         if (!eventList) return;
-        eventList.innerHTML = "";
+        eventList.textContent = "";
 
         if (!data?.length) {
           eventEmpty && eventEmpty.classList.remove("hidden");
@@ -239,25 +230,29 @@ import { supabase } from "/src/js/supabaseClient.js";
             ev.comment ? h("div", { class: "text-xs text-gray-500" }, `Komentarz: ${ev.comment}`) : null
           ]);
 
-          const delBtn = h("button", {
-            class: "text-red-500 hover:text-red-700 ml-2 text-xl",
-            title: "Usuń",
-            onClick: async () => {
-              if (!confirm("Usunąć wydarzenie?")) return;
-              const { error: delErr } = await supabase
-                .from("events")
-                .delete()
-                .eq("id", ev.id)
-                .eq("uid", userId);
-              if (delErr) {
-                toast("Błąd usuwania", "bg-red-600");
-              } else {
-                toast("Usunięto wydarzenie", "bg-red-600");
-                loadUserEvents();
-                loadUserHistory();
+          const delBtn = h(
+            "button",
+            {
+              class: "text-red-500 hover:text-red-700 ml-2 text-xl",
+              title: "Usuń",
+              onClick: async () => {
+                if (!confirm("Usunąć wydarzenie?")) return;
+                const { error: delErr } = await supabase
+                  .from("events")
+                  .delete()
+                  .eq("id", ev.id)
+                  .eq("uid", userId);
+                if (delErr) {
+                  toast("Błąd usuwania", "bg-red-600");
+                } else {
+                  toast("Usunięto wydarzenie ✅");
+                  loadUserEvents();
+                  loadUserHistory();
+                }
               }
-            }
-          }, "🗑");
+            },
+            "🗑"
+          );
 
           const row = h(
             "div",
@@ -273,12 +268,19 @@ import { supabase } from "/src/js/supabaseClient.js";
       }
     }
 
+    /* ───────────── events: create ───────────── */
     eventForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const title   = eventForm.eventTitle?.value?.trim();
-      const date    = normalizeDate(eventForm.eventDate?.value);
-      const person  = eventForm.eventForWho?.value?.trim();
-      const comment = eventForm.eventComment?.value?.trim();
+      // беремо поля ТІЛЬКИ за #id
+      const titleEl   = $("#eventTitle");
+      const dateEl    = $("#eventDate");
+      const forWhoEl  = $("#eventForWho");
+      const commentEl = $("#eventComment");
+
+      const title   = titleEl?.value?.trim();
+      const date    = normalizeDate(dateEl?.value);
+      const person  = forWhoEl?.value?.trim() || null;
+      const comment = commentEl?.value?.trim() || null;
 
       if (!title || !date) return toast("Uzupełnij tytuł i datę.", "bg-yellow-600");
 
@@ -286,6 +288,7 @@ import { supabase } from "/src/js/supabaseClient.js";
         uid: userId, title, person, comment, date, type: "custom"
       });
       if (error) {
+        console.error("[events] insert:", error);
         toast("Błąd zapisu wydarzenia", "bg-red-600");
         return;
       }
@@ -294,12 +297,12 @@ import { supabase } from "/src/js/supabaseClient.js";
       else eventModal?.classList.add("hidden");
 
       eventForm.reset?.();
-      toast("Wydarzenie zapisane!");
+      toast("Wydarzenie zapisane! 🎉");
       loadUserEvents();
       loadUserHistory();
     });
 
-    // ───────────────── History (ostatnie 5)
+    /* ───────────── history (ostatnie 5) ───────────── */
     async function loadUserHistory() {
       try {
         if (!historyList) return;
@@ -309,13 +312,13 @@ import { supabase } from "/src/js/supabaseClient.js";
           .eq("uid", userId)
           .order("created_at", { ascending: false })
           .limit(5);
-        historyList.innerHTML = "";
+        historyList.textContent = "";
         if (error || !data?.length) {
           historyList.appendChild(h("li", {}, "Brak aktywności."));
           return;
         }
         data.forEach((ev) => {
-          const li = h("li", {}, `${ev.title || "Wydarzenie"} (${ev.date || "—"}) – ${ev.person || ""}`);
+          const li = h("li", {}, `${ev.title || "Wydarzenie"} (${ev.date || "—"})${ev.person ? " – " + ev.person : ""}`);
           historyList.appendChild(li);
         });
       } catch (e) {
@@ -323,7 +326,7 @@ import { supabase } from "/src/js/supabaseClient.js";
       }
     }
 
-    // ───────────────── Referral
+    /* ───────────── referral ───────────── */
     referralBtn?.addEventListener("click", () => {
       const link = `${location.origin}/?ref=${encodeURIComponent(userId)}`;
       navigator.clipboard?.writeText(link)
@@ -331,12 +334,11 @@ import { supabase } from "/src/js/supabaseClient.js";
         .catch(() => toast("Błąd kopiowania.", "bg-red-600"));
     });
 
-    // ───────────────── Realtime (opcjonalnie)
+    /* ───────────── realtime (optional) ───────────── */
     try {
       const channel = supabase
         .channel("events-realtime")
-        .on(
-          "postgres_changes",
+        .on("postgres_changes",
           { event: "*", schema: "public", table: "events", filter: `uid=eq.${userId}` },
           () => { loadUserEvents(); loadUserHistory(); }
         )
@@ -344,13 +346,11 @@ import { supabase } from "/src/js/supabaseClient.js";
       window.addEventListener("beforeunload", () => {
         try { supabase.removeChannel(channel); } catch {}
       });
-    } catch (e) {
-      // Якщо edge runtime / без Realtime — тихо ігноруємо
+    } catch {
+      /* тихо ігноруємо, якщо Realtime недоступний */
     }
 
-    // Initial load
-    await loadProfile();
-    await loadUserEvents();
-    await loadUserHistory();
+    /* ───────────── initial load ───────────── */
+    await Promise.all([loadProfile(), loadUserEvents(), loadUserHistory()]);
   });
 })();
