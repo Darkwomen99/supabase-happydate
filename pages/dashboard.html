@@ -8,48 +8,42 @@
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- FullCalendar (CSS для модуля) -->
+  <!-- FullCalendar -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 
-  <!-- AOS (опційно) -->
+  <!-- AOS -->
   <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
 
-  <!-- Твої стилі (опційно) -->
+  <!-- Custom styles -->
   <link rel="stylesheet" href="/assets/css/style.css" />
 
   <style>
-    .glass-card {
-      backdrop-filter: blur(12px);
-      background: rgba(255,255,255,.6);
-    }
-    .dark .glass-card {
-      background: rgba(17,24,39,.6);
-    }
+    .glass-card { backdrop-filter: blur(12px); background: rgba(255,255,255,.6); }
+    .dark .glass-card { background: rgba(17,24,39,.6); }
     [data-type="error"]{ color:#dc2626 }
     [data-type="success"]{ color:#16a34a }
   </style>
 </head>
 
-<!-- guard: потрібен вхід -->
 <body class="min-h-screen flex flex-col" data-auth-guard="required" data-auth-redirect="/pages/login.html">
 
   <!-- Header -->
-  <header class="bg-gradient-to-r from-blue-400 to-cyan-400 py-4 shadow-none sticky top-0 z-50 transition-shadow duration-300">
+  <header class="bg-gradient-to-r from-blue-400 to-cyan-400 py-4 sticky top-0 z-50 transition-shadow">
     <div class="max-w-7xl mx-auto flex justify-between items-center px-4">
       <a href="/index.html" class="text-2xl font-bold text-white">🎁 HappyDate</a>
       <nav class="flex gap-4 text-white font-semibold items-center">
-        <a href="/pages/index.html" class="hover:underline">Strona główna</a>
+        <a href="/index.html" class="hover:underline">Strona główna</a>
         <a href="/pages/services.html" class="hover:underline">Usługi</a>
         <a href="/pages/dashboard.html" class="underline font-bold">Moje wydarzenia</a>
         <a href="/pages/settings.html" class="hover:underline">Ustawienia</a>
 
         <!-- Аватар + вихід -->
         <a href="/pages/profile.html" id="user-avatar-link" class="hidden" aria-label="Mój profil">
-          <img id="user-avatar" src="/public/img/11.png" alt="Profil użytkownika"
+          <img id="user-avatar" src="/img/11.png" alt="Profil użytkownika"
                class="w-10 h-10 rounded-full border-2 border-white shadow cursor-pointer hover:scale-105 transition" />
         </a>
-        <button id="logout-btn" data-auth="sign-out" data-auth-next="/pages/index.html"
+        <button id="logout-btn" data-auth="sign-out" data-auth-next="/index.html"
                 class="hover:underline">Wyloguj się</button>
       </nav>
     </div>
@@ -68,7 +62,7 @@
         </div>
       </section>
 
-      <!-- Бокова панель -->
+      <!-- Sidebar -->
       <aside>
         <div class="glass-card rounded-2xl p-6 shadow-xl flex flex-col gap-6">
           <h3 class="text-xl font-bold text-center">🎁 Nadchodzące wydarzenia</h3>
@@ -77,18 +71,18 @@
           <div class="flex gap-4 mt-2 justify-center">
             <a href="tel:+48123123123"
                class="rounded-full bg-white/60 hover:bg-white/90 text-blue-600 shadow-lg p-3 transition"
-               title="Zadzwoń">
-              <span class="text-2xl">📞</span>
+               aria-label="Zadzwoń">
+              📞
             </a>
             <a href="mailto:happyddate@gmail.com"
                class="rounded-full bg-white/60 hover:bg-white/90 text-blue-600 shadow-lg p-3 transition"
-               title="Mail">
-              <span class="text-2xl">📩</span>
+               aria-label="Wyślij maila">
+              📩
             </a>
             <button id="ai-open"
                     class="rounded-full bg-white/60 hover:bg-white/90 text-blue-600 shadow-lg p-3 transition"
-                    title="AI Chat">
-              <span class="text-2xl">🤖</span>
+                    aria-label="AI Chat">
+              🤖
             </button>
           </div>
         </div>
@@ -105,21 +99,21 @@
     </div>
   </footer>
 
-  <!-- Плаваюча кнопка AI -->
+  <!-- Floating AI button -->
   <button id="ai-chat-toggle"
-          class="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-2xl text-2xl cursor-pointer transition-all duration-300"
-          title="Twój AI Asystent">
+          class="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-2xl text-2xl cursor-pointer transition"
+          aria-label="Twój AI Asystent">
     🤖
   </button>
 
-  <!-- Вікно AI -->
+  <!-- AI Chat -->
   <div id="ai-chat-window"
-       class="hidden fixed bottom-24 right-6 w-80 max-w-full glass-card border shadow-2xl z-50 flex-col transition-all duration-300 dark:bg-gray-900 rounded-2xl overflow-hidden">
+       class="hidden fixed bottom-24 right-6 w-80 max-w-full glass-card border shadow-2xl z-50 flex-col dark:bg-gray-900 rounded-2xl overflow-hidden">
     <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-3 font-semibold flex items-center gap-2">
-      <span>🎁</span> AI Prezentowy
+      🎁 AI Prezentowy
       <button type="button" id="ai-chat-close"
               class="ml-auto bg-white/10 rounded-full px-2 py-1 hover:bg-white/20 transition text-lg"
-              title="Zamknij">×</button>
+              aria-label="Zamknij">×</button>
     </div>
     <div class="p-4 flex flex-col gap-2">
       <input id="gift-person" class="w-full p-2 border rounded mb-1" placeholder="Dla kogo?" />
@@ -131,7 +125,7 @@
     </div>
   </div>
 
-  <!-- Модалка додавання/редагування події -->
+  <!-- Modal dodania wydarzenia -->
   <div id="eventModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden">
     <div class="glass-card w-full max-w-md p-6 rounded-2xl shadow-2xl">
       <h2 class="text-xl font-bold mb-4 flex items-center gap-2">➕ Dodaj / edytuj wydarzenie</h2>
@@ -144,8 +138,6 @@
         </select>
         <input id="eventPerson" class="border rounded p-2" placeholder="Kogo dotyczy?" autocomplete="off">
         <input id="eventDate" type="date" class="border rounded p-2" required>
-        <!-- поле часу не обов’язкове; calendar.js підставить 09:00 за замовчуванням -->
-        <!-- <input id="eventTime" type="time" class="border rounded p-2"> -->
         <div class="flex gap-2 justify-end pt-2">
           <button type="button" id="deleteEvent"
                   class="bg-red-600 text-white rounded px-4 py-2 hover:bg-red-700">Usuń</button>
@@ -158,22 +150,24 @@
     </div>
   </div>
 
-  <!-- i18n (опційно, якщо використовуєш переклади на сторінці) -->
+  <!-- i18n -->
   <script src="https://unpkg.com/i18next@21.6.14/i18next.min.js" defer></script>
   <script src="https://unpkg.com/i18next-http-backend@1.4.1/i18nextHttpBackend.min.js" defer></script>
   <script src="/src/js/i18n-init.js" defer></script>
 
-  <!-- Supabase + Auth (твій спільний клієнт) -->
+  <!-- 🔑 Env.js перед supabase -->
+  <script src="/env.js"></script>
+
+  <!-- Supabase & Auth -->
   <script type="module" src="/src/js/supabaseClient.js"></script>
   <script type="module" src="/src/js/auth.js"></script>
 
-  <!-- Календар (ESM, вже імпортує FullCalendar всередині) -->
+  <!-- Calendar logic -->
   <script type="module" src="/src/js/calendar.js"></script>
 
-  <!-- AI-вікно логіка (безпечний плейсхолдер, БЕЗ відкритих ключів) -->
+  <!-- AI Gift logic -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // AOS
       try { window.AOS?.init?.({ duration: 700, once: true, offset: 60 }); } catch {}
 
       const chatToggle = document.getElementById('ai-chat-toggle');
@@ -202,7 +196,6 @@
 
         out.textContent = '⏳ Generuję propozycje...';
         try {
-          // Створи serverless-функцію /api/gifts (Vercel) і працюй з ключем там, НЕ в браузері.
           const res = await fetch('/api/gifts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -222,7 +215,6 @@
             ul.appendChild(li);
           });
         } catch (err) {
-          // М’який фолбек без бекенда
           out.innerHTML =
             `<div class="text-gray-700 dark:text-gray-200">
                <p class="mb-1">Oto przykładowe pomysły (tryb offline):</p>

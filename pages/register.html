@@ -18,32 +18,38 @@
     .strength-4{width:100%;background:#16a34a}
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-pink-100 dark:from-gray-800 dark:to-gray-900">
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-pink-100">
 
-  <main class="w-full max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+  <main class="w-full max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl">
     <h1 class="text-2xl font-bold text-center mb-2">Rejestracja</h1>
-    <p class="text-center text-sm text-gray-600 dark:text-gray-300 mb-6">Załóż konto, aby planować prezenty z AI.</p>
+    <p class="text-center text-sm text-gray-600 mb-6">Załóż konto, aby planować prezenty z AI.</p>
 
     <!-- Email / Password -->
-    <form id="regForm" class="space-y-4" novalidate>
+    <form id="regForm" class="space-y-4" novalidate autocomplete="on">
       <label class="block">
         <span class="text-sm font-medium">E-mail</span>
-        <input name="email" type="email" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900" placeholder="you@example.com" required />
+        <input name="email" type="email" class="w-full mt-1 p-3 rounded-lg border"
+               placeholder="you@example.com" autocomplete="email" required />
       </label>
 
       <label class="block">
         <span class="text-sm font-medium">Hasło</span>
         <div class="relative">
-          <input name="password" id="pass1" type="password" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900 pr-12" placeholder="Min. 6 znaków" minlength="6" required />
-          <button type="button" id="toggle1" class="absolute inset-y-0 right-3 text-sm text-blue-600">Pokaż</button>
+          <input name="password" id="pass1" type="password"
+                 class="w-full mt-1 p-3 rounded-lg border pr-12"
+                 placeholder="Min. 6 znaków" minlength="6" autocomplete="new-password" required />
+          <button type="button" id="toggle1" class="absolute inset-y-0 right-3 text-sm text-blue-600"
+                  aria-label="Pokaż/Ukryj hasło">Pokaż</button>
         </div>
       </label>
 
       <label class="block">
         <span class="text-sm font-medium">Powtórz hasło</span>
         <div class="relative">
-          <input id="pass2" type="password" class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900 pr-12" minlength="6" required />
-          <button type="button" id="toggle2" class="absolute inset-y-0 right-3 text-sm text-blue-600">Pokaż</button>
+          <input id="pass2" type="password" class="w-full mt-1 p-3 rounded-lg border pr-12"
+                 minlength="6" autocomplete="new-password" required />
+          <button type="button" id="toggle2" class="absolute inset-y-0 right-3 text-sm text-blue-600"
+                  aria-label="Pokaż/Ukryj hasło">Pokaż</button>
         </div>
       </label>
 
@@ -53,8 +59,7 @@
       </div>
       <p id="strengthText" class="text-xs text-gray-500">Siła hasła: słabe</p>
 
-      <button id="submitEmail"
-              type="submit"
+      <button id="submitEmail" type="submit"
               class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
         Utwórz konto
       </button>
@@ -69,12 +74,12 @@
 
     <!-- Google -->
     <button id="googleBtn"
-            class="w-full border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+            class="w-full border border-gray-300 hover:bg-gray-50 text-gray-800 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" />
       Zarejestruj się przez Google
     </button>
 
-    <p id="msg" class="mt-4 text-sm text-gray-700 dark:text-gray-300"></p>
+    <p id="msg" class="mt-4 text-sm text-gray-700"></p>
 
     <div class="my-4 text-center">
       <a href="/pages/login.html" class="text-blue-600 hover:underline text-sm">Masz już konto? Zaloguj się</a>
@@ -85,10 +90,13 @@
   <div id="toast"
        class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded text-white shadow-lg"></div>
 
-  <!-- Twoje wspólne skрипти (мови/тема/навігація) — не обов'язково, але можна підключити -->
+  <!-- 1) Публічні ENV: мусить бути ПЕРЕД supabaseClient.js -->
+  <script src="/env.js"></script>
+
+  <!-- 2) (опційно) спільні скрипти UI -->
   <script src="/src/js/main.js" defer></script>
 
-  <!-- Supabase -->
+  <!-- 3) Supabase -->
   <script type="module">
     import { supabase } from '/src/js/supabaseClient.js';
 
@@ -99,12 +107,11 @@
       const el = $('#toast');
       el.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded text-white shadow-lg';
       el.classList.add(type==='err' ? 'bg-red-600' : type==='warn' ? 'bg-yellow-600' : 'bg-green-600');
-      el.textContent = msg;
-      el.classList.remove('hidden');
+      el.textContent = msg; el.classList.remove('hidden');
       setTimeout(()=> el.classList.add('hidden'), 2600);
     };
 
-    // UI
+    // UI refs
     const form         = $('#regForm');
     const submitEmail  = $('#submitEmail');
     const googleBtn    = $('#googleBtn');
@@ -137,7 +144,7 @@
     document.getElementById('toggle1')?.addEventListener('click', ()=> toggle(pass1, document.getElementById('toggle1')));
     document.getElementById('toggle2')?.addEventListener('click', ()=> toggle(pass2, document.getElementById('toggle2')));
 
-    // Helper: loading state
+    // Loading state
     const setLoading = (btn, loading=true, label='Przetwarzanie…') => {
       btn.disabled = loading;
       if (loading) {
@@ -151,10 +158,11 @@
     // EMAIL + PASSWORD SIGNUP
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (submitEmail.disabled) return;
+
       const email = form.email.value.trim();
       const password = pass1.value.trim();
       const confirm  = pass2.value.trim();
-
       msg.textContent = '';
 
       if (!email || !password) { msg.textContent = 'Uzupełnij e-mail i hasło.'; return; }
@@ -163,11 +171,11 @@
 
       setLoading(submitEmail, true, 'Tworzenie konta…');
       try {
-        // Jeśli email confirmation włączony w Supabase — wyśle maila
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            // jeśli e-mail confirmation włączone — użytkownik dostanie maila i wróci na tę stronę
             emailRedirectTo: window.location.origin + '/pages/dashboard.html'
           }
         });
@@ -184,9 +192,6 @@
           return;
         }
 
-        // Dwa scenariusze:
-        // 1) Włączone potwierdzanie e-maila → brak sesji, prosimy sprawdzić skrzynkę
-        // 2) Wyłączone potwierdzanie → użytkownik od razu zalogowany i zostanie przekierowany przez onAuthStateChange
         toast('Konto utworzone ✅');
         msg.textContent = 'Jeśli wymagane — sprawdź skrzynkę i potwierdź e-mail.';
         setTimeout(()=> window.location.href = '/pages/dashboard.html', 900);
@@ -200,16 +205,16 @@
 
     // GOOGLE OAUTH
     googleBtn.addEventListener('click', async () => {
+      if (googleBtn.disabled) return;
       try {
         googleBtn.disabled = true;
         await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: window.location.origin + '/pages/dashboard.html',
-            queryParams: { prompt: 'consent' } // wymuś wybór konta przy potrzebie
+            queryParams: { prompt: 'consent' }
           }
         });
-        // Uwaga: przeglądarka przejdzie do Google i wróci na redirectTo
       } catch (e) {
         console.error(e);
         googleBtn.disabled = false;

@@ -15,22 +15,23 @@
     <h1 class="text-2xl font-bold mb-2 text-center">Zaloguj się do HappyDate</h1>
     <p class="text-center text-sm text-gray-600 mb-6">Wróć do planowania prezentów z AI 🎁</p>
 
-    <form id="login-form" class="space-y-4" novalidate>
+    <form id="login-form" class="space-y-4" novalidate autocomplete="on">
       <label class="block">
         <span class="text-sm font-medium">E-mail</span>
-        <input id="email" type="email" required
-               class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900"
-               placeholder="you@example.com" />
+        <input id="email" name="email" type="email" required
+               class="w-full mt-1 p-3 rounded-lg border"
+               placeholder="you@example.com" autocomplete="email" />
       </label>
 
       <label class="block">
         <span class="text-sm font-medium">Hasło</span>
         <div class="relative">
-          <input id="password" type="password" required minlength="6"
-                 class="w-full mt-1 p-3 rounded-lg border dark:bg-gray-900 pr-12"
-                 placeholder="Twoje hasło" />
+          <input id="password" name="password" type="password" required minlength="6"
+                 class="w-full mt-1 p-3 rounded-lg border pr-12"
+                 placeholder="Twoje hasło" autocomplete="current-password" />
           <button type="button" id="togglePwd"
-                  class="absolute inset-y-0 right-3 text-sm text-blue-600">Pokaż</button>
+                  class="absolute inset-y-0 right-3 text-sm text-blue-600"
+                  aria-label="Pokaż/Ukryj hasło">Pokaż</button>
         </div>
       </label>
 
@@ -47,7 +48,7 @@
     </div>
 
     <button id="googleBtn"
-            class="w-full border border-gray-300 hover:bg-gray-50 text-gray-800 py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+            class="w-full border border-gray-300 hover:bg-gray-50 text-gray-800 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5">
       Zaloguj przez Google
     </button>
@@ -64,10 +65,13 @@
   <!-- Toast -->
   <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded text-white shadow-lg"></div>
 
-  <!-- (opcjonalnie) wspólny skрипт UI -->
+  <!-- 1) ПУБЛІЧНІ ENV: має бути перед supabaseClient.js -->
+  <script src="/env.js"></script>
+
+  <!-- 2) (опційно) спільний UI -->
   <script src="/src/js/main.js" defer></script>
 
-  <!-- Supabase login logic -->
+  <!-- 3) Supabase login logic -->
   <script type="module">
     import { supabase } from '/src/js/supabaseClient.js';
 
@@ -75,6 +79,9 @@
     const msg = $('#msg');
     const loginBtn = $('#loginBtn');
     const googleBtn = $('#googleBtn');
+
+    // автофокус
+    $('#email')?.focus();
 
     const toast = (text, type='ok') => {
       const t = $('#toast');
@@ -104,6 +111,7 @@
     // Email+password login
     $('#login-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (loginBtn.disabled) return; // анти-даблклік
       msg.textContent = '';
       const email = $('#email').value.trim();
       const password = $('#password').value.trim();
@@ -112,7 +120,7 @@
 
       setLoading(loginBtn, true);
       try {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(loginBtn, false);
         if (error) {
           const m = (error.message||'').toLowerCase();
@@ -138,6 +146,7 @@
 
     // Google OAuth
     googleBtn?.addEventListener('click', async () => {
+      if (googleBtn.disabled) return;
       try {
         googleBtn.disabled = true;
         await supabase.auth.signInWithOAuth({
