@@ -36,6 +36,9 @@
   <!-- Custom -->
   <link rel="stylesheet" href="/src/css/style.css" />
 
+  <!-- ✅ ENV — ОБОВ’ЯЗКОВО до будь-якого Supabase -->
+  <script src="/public/env.js"></script>
+
   <style>
     @media (prefers-reduced-motion: reduce){.animate-bounce,.animate-ping,.animate-pulse{animation:none!important}}
     @keyframes fade-in { from { opacity:0; transform: translateY(5px);} to { opacity:1; transform: translateY(0);} }
@@ -71,11 +74,10 @@
 
       <!-- Right controls on small screens -->
       <div class="flex items-center gap-2 sm:hidden">
-        <!-- Theme toggle (mobile visible too) -->
-        <button id="theme-toggle"
-          class="px-3 py-2 rounded border bg-white/10 text-white hover:bg-white/20 transition"
+        <!-- ✅ Theme toggle (mobile) — БЕЗ дублювання id -->
+        <button class="theme-toggle px-3 py-2 rounded border bg-white/10 text-white hover:bg-white/20 transition"
           type="button" aria-label="Przełącz motyw">
-          <span id="theme-icon">🌙</span>
+          <span class="theme-icon">🌙</span>
         </button>
 
         <button
@@ -96,7 +98,6 @@
           <a href="/index.html" data-i18n="header.home" tabindex="0"
              class="px-1 py-0.5 rounded bg-white/20 underline font-semibold focus:bg-white/30 transition">Strona główna</a>
 
-          <!-- IMPORTANT: added id="dashboard-link" -->
           <a href="/pages/dashboard.html" data-i18n="header.dashboard" tabindex="0" id="dashboard-link"
              class="px-1 py-0.5 rounded hover:bg-white/20 focus:bg-white/30 transition">Moje wydarzenia</a>
 
@@ -130,7 +131,6 @@
             <div id="langDropdown"
               class="absolute right-0 mt-2 bg-white shadow-xl rounded-xl z-50 py-2 min-w-[150px] hidden text-left transition-all duration-200 scale-95 opacity-0 origin-top-right"
               role="menu">
-              <!-- IMPORTANT: add class="lang-btn" so main.js picks them -->
               <button class="lang-btn flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition"
                       data-lang="pl" role="menuitem" tabindex="-1" aria-label="Polski"><span>🇵🇱</span> Polski</button>
               <button class="lang-btn flex items-center gap-2 w-full px-4 py-3 text-base hover:bg-blue-100 transition"
@@ -144,11 +144,10 @@
             </div>
           </div>
 
-          <!-- Theme toggle (desktop) -->
-          <button id="theme-toggle"
-            class="px-3 py-2 rounded border bg-white/10 text-white hover:bg-white/20 transition"
+          <!-- ✅ Theme toggle (desktop) — теж клас -->
+          <button class="theme-toggle px-3 py-2 rounded border bg-white/10 text-white hover:bg-white/20 transition"
             type="button" aria-label="Przełącz motyw">
-            <span id="theme-icon">🌙</span>
+            <span class="theme-icon">🌙</span>
           </button>
 
           <!-- Auth shortcuts (desktop) -->
@@ -209,7 +208,6 @@
     <h3 class="text-lg font-bold">Krótka zapowiedź</h3>
     <p class="text-sm text-gray-600 dark:text-gray-300">Ciepło, emocje i prezenty — odkryj HappyDate w 30 sekund 💛</p>
     <audio controls class="w-full">
-      <!-- podmień na istniejący plik -->
       <source src="/public/audio/ElevenLabs_2025-04-09T21_13_18.mp3" type="audio/mpeg" />
       Twoja przeglądarka nie wspiera audio.
     </audio>
@@ -219,7 +217,7 @@
   </form>
 </dialog>
 
-<!-- Header interactions (menu/lang/audio) -->
+<!-- Header interactions (menu/lang/audio/theme) -->
 <script defer>
 (() => {
   const qs  = (s, r=document) => r.querySelector(s);
@@ -240,9 +238,10 @@
   const langWrap  = qs('#lang-dropdown-wrap');
   const langFlag  = qs('#langFlag');
   const langMap   = { pl: "🇵🇱", ua: "🇺🇦", en: "🇬🇧", ru: "🇷🇺", de: "🇩🇪" };
-  const currentLang = () => localStorage.getItem('lang') || (navigator.language?.slice(0,2) ?? 'pl');
+  const currentLang = () => (window.i18n?.getLang?.() || localStorage.getItem('lang') || navigator.language?.slice(0,2) || 'pl');
   const updateLangFlag = () => { if(langFlag) langFlag.textContent = langMap[currentLang()] || '🌐'; };
   updateLangFlag();
+  document.addEventListener('happydate:langChanged', updateLangFlag);
 
   function openMenu(){ langMenu.classList.remove('hidden','scale-95','opacity-0'); langMenu.classList.add('scale-100','opacity-100'); langBtn.setAttribute('aria-expanded','true'); langBtn.querySelector('svg')?.classList.add('rotate-180'); qsa('[role="menuitem"]', langMenu)[0]?.focus();}
   function closeMenu(){ langMenu.classList.add('hidden','scale-95','opacity-0'); langMenu.classList.remove('scale-100','opacity-100'); langBtn.setAttribute('aria-expanded','false'); langBtn.querySelector('svg')?.classList.remove('rotate-180'); }
@@ -258,36 +257,28 @@
     if(e.key==='Home'){ e.preventDefault(); items[0]?.focus(); }
     if(e.key==='End'){ e.preventDefault(); items.at(-1)?.focus(); }
   });
-  // ВАЖЛИВО: НЕ вішаємо тут кліки для зміни мови — цим займається /src/js/main.js через .lang-btn
+
+  // ✅ Theme toggle (для всіх кнопок .theme-toggle)
+  const applyThemeIcon = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    qsa('.theme-icon').forEach(i => i.textContent = isDark ? '☀️' : '🌙');
+  };
+  qsa('.theme-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const root = document.documentElement;
+      const isDark = root.classList.toggle('dark');
+      try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch {}
+      applyThemeIcon();
+    });
+  });
+  // apply persisted theme
+  (() => {
+    const pref = localStorage.getItem('theme');
+    if (pref === 'dark') document.documentElement.classList.add('dark');
+    applyThemeIcon();
+  })();
 })();
 </script>
-
-<!-- Sticky help icon + popup -->
-<div class="fixed bottom-6 left-6 z-50" aria-label="Szybki kontakt">
-  <div class="relative">
-    <button
-      id="helpBtn"
-      class="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-full p-4 shadow-xl text-xl transition duration-300 ease-in-out focus:ring-2 focus:ring-blue-300"
-      aria-label="Szybki kontakt telefoniczny lub mailowy"
-      aria-controls="helpPopup"
-      aria-expanded="false"
-      type="button"
-      onclick="document.getElementById('helpPopup').classList.toggle('hidden')"
-    >📞</button>
-
-    <div
-      id="helpPopup"
-      class="hidden absolute left-16 bottom-0 bg-white border border-gray-200 rounded-xl shadow-xl p-4 text-sm w-64 animate-fade-in z-50"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Pomoc"
-    >
-      <p class="text-gray-800 font-semibold mb-1">Potrzebujesz pomocy?</p>
-      <p><a href="tel:+48123123123" class="text-blue-600 hover:underline" aria-label="Zadzwoń do nas">📱 +48 123 123 123</a></p>
-      <p><a href="mailto:happyddate@gmail.com" class="text-blue-600 hover:underline" aria-label="Napisz do nas">📩 happyddate@gmail.com</a></p>
-    </div>
-  </div>
-</div>
 
 <!-- HERO -->
 <section class="bg-gradient-to-r from-pink-100 via-yellow-100 to-blue-100 py-16 sm:py-20 px-2 md:px-12 text-center relative overflow-hidden">
@@ -454,7 +445,7 @@
   </div>
 </footer>
 
-<!-- Main JS (must be after i18n/AOS) -->
+<!-- Main JS -->
 <script src="/src/js/main.js" defer></script>
 
 <!-- Chatbot -->
@@ -517,7 +508,7 @@
 })();
 </script>
 
-<!-- Cookies (PL) -->
+<!-- Cookies -->
 <div id="cookieConsent" class="fixed bottom-0 inset-x-0 bg-gray-800 bg-opacity-90 text-white py-4 px-6 z-50 hidden" role="dialog" aria-modal="true" aria-label="Informacja o plikach cookies">
   <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
     <p class="text-sm md:text-base" data-i18n="cookies.text">
@@ -538,7 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-<!-- i18n init -->
+<!-- i18n init (✅ правильний шлях до JSON) -->
 <script defer>
 (function() {
   const supportedLangs = ["pl", "ua", "en", "ru", "de"];
@@ -550,17 +541,19 @@ document.addEventListener("DOMContentLoaded", () => {
     .init({
       lng: initialLang,
       fallbackLng: "pl",
-      backend: { loadPath: `/src/i18n/{{lng}}.json` }
+      backend: { loadPath: `/public/assets/lang/{{lng}}.json` }
     }, function(err, t) {
       document.querySelectorAll("[data-i18n]").forEach(el => {
         const key = el.getAttribute("data-i18n");
         if (i18next.exists(key)) el.innerHTML = t(key);
       });
+      // подія для прапорця в хедері
+      document.dispatchEvent(new CustomEvent("happydate:langChanged", { detail: { lang: i18next.language }}));
     });
 })();
 </script>
 
-<!-- AOS -->
+<!-- AOS start -->
 <script defer>
   document.addEventListener('DOMContentLoaded', () => {
     if (window.AOS) AOS.init({ duration: 700, once: true, offset: 60 });
@@ -585,7 +578,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-<!-- ===== Supabase: header auth UI (optional) ===== -->
+<!-- Supabase header auth UI -->
 <script type="module">
   let supabase;
   try {
@@ -657,8 +650,8 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("[header-auth] signOut error:", e);
     }
   };
-  logoutBtn?.addEventListener("click", signOut);
-  logoutBtnM?.addEventListener("click", signOut);
+  $("#logout-btn")?.addEventListener("click", signOut);
+  $("#logout-btn-mobile")?.addEventListener("click", signOut);
 </script>
 
 </body>
