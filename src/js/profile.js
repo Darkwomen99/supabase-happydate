@@ -2,32 +2,38 @@
 import { supabase } from "/src/js/supabaseClient.js";
 
 (() => {
+  "use strict";
+
   /* ───────────────────────────── helpers ───────────────────────────── */
   const $  = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  const toast = (msg, color = "bg-green-600") => {
-    const el = document.createElement("div");
-    el.className = `fixed top-8 right-8 z-50 px-5 py-3 rounded-xl text-white font-semibold shadow-xl transition-all duration-300 ${color}`;
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 3000);
-  };
+  const toast = (() => {
+    let tId = null;
+    return (msg, color = "bg-green-600") => {
+      const el = document.createElement("div");
+      el.role = "status";
+      el.className = `fixed top-8 right-8 z-50 px-5 py-3 rounded-xl text-white font-semibold shadow-xl transition-all duration-300 ${color}`;
+      el.textContent = msg;
+      document.body.appendChild(el);
+      clearTimeout(tId);
+      tId = setTimeout(() => el.remove(), 3000);
+    };
+  })();
 
   const calcLevel = (points) =>
-    points >= 100 ? "Ekspert" : points >= 40 ? "Znawca" : points >= 20 ? "Entuzjasta" : "Nowicjusz";
+    points >= 100 ? "Ekspert" :
+    points >=  40 ? "Znawca"  :
+    points >=  20 ? "Entuzjasta" : "Nowicjusz";
 
   const normalizeDate = (str) => {
     const v = String(str || "").trim();
-    if (!v) return null;
-    // приймаємо тільки YYYY-MM-DD
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
-    // додаткова валідація
     const d = new Date(v);
     return Number.isNaN(+d) ? null : v;
   };
 
-  // невеличкий фабрикатор: безпечний (без innerHTML)
+  // безпечний фабрикатор елементів
   const h = (tag, props = {}, children = []) => {
     const el = document.createElement(tag);
     for (const [k, v] of Object.entries(props)) {
@@ -45,6 +51,11 @@ import { supabase } from "/src/js/supabaseClient.js";
     return el;
   };
 
+  const sanitizeFilename = (name) =>
+    String(name || "file")
+      .replace(/[^\w.\-]+/g, "_")
+      .slice(0, 80);
+
   /* ───────────────────────────── main ───────────────────────────── */
   document.addEventListener("DOMContentLoaded", async () => {
     // Auth gate
@@ -55,29 +66,29 @@ import { supabase } from "/src/js/supabaseClient.js";
     }
     const userId = session.user.id;
 
-    // UI refs — завжди через #id, не через form.<name>
-    const form          = $("#profile-form");
-    const nameInput     = $("#name");
-    const surnameInput  = $("#surname");
-    const emailInput    = $("#email");
-    const phoneInput    = $("#phone");
-    const birthdateInput= $("#birthdate");
-    const genderSelect  = $("#gender");
-    const prefTextarea  = $("#preferences");
+    // UI refs
+    const form           = $("#profile-form");
+    const nameInput      = $("#name");
+    const surnameInput   = $("#surname");
+    const emailInput     = $("#email");
+    const phoneInput     = $("#phone");
+    const birthdateInput = $("#birthdate");
+    const genderSelect   = $("#gender");
+    const prefTextarea   = $("#preferences");
 
-    const photoInput    = $("#photoFile");
-    const userPhoto     = $("#user-photo");
-    const userPoints    = $("#userPoints");
-    const userLevel     = $("#user-level");
-    const logoutBtn     = $("#logout-btn");
+    const photoInput     = $("#photoFile");
+    const userPhoto      = $("#user-photo");
+    const userPoints     = $("#userPoints");
+    const userLevel      = $("#user-level");
+    const logoutBtn      = $("#logout-btn");
 
-    const eventList     = $("#event-list");
-    const eventEmpty    = $("#event-empty");
-    const eventForm     = $("#eventForm");
-    const eventModal    = $("#eventModal");
+    const eventList      = $("#event-list");
+    const eventEmpty     = $("#event-empty");
+    const eventForm      = $("#eventForm");
+    const eventModal     = $("#eventModal");
 
-    const historyList   = $("#history-list");
-    const referralBtn   = $("#referral-btn");
+    const historyList    = $("#history-list");
+    const referralBtn    = $("#referral-btn");
 
     // Lang dropdown (легкий init; не ламає, якщо i18n відсутній)
     const langBtn  = $("#langDropdownBtn");
@@ -86,21 +97,38 @@ import { supabase } from "/src/js/supabaseClient.js";
     const langMap  = { pl: "🇵🇱", ua: "🇺🇦", en: "🇬🇧", ru: "🇷🇺", de: "🇩🇪" };
     const getLang  = () => window.i18n?.getLang?.() || localStorage.getItem("lang") || (navigator.language || "pl").slice(0, 2);
     const setFlag  = () => { if (langFlag) langFlag.textContent = langMap[getLang()] || "🌐"; };
+
     setFlag();
-    langBtn?.addEventListener("click", (e) => { e.stopPropagation(); langDD?.classList.toggle("hidden"); });
-    document.addEventListener("click", () => langDD?.classList.add("hidden"));
-    langDD?.querySelectorAll("button[data-lang]")?.forEach((b) => {
-      b.addEventListener("click", async () => {
-        const lng = b.dataset.lang;
-        if (window.i18n?.setLang) { await window.i18n.setLang(lng, { persist: true }); setFlag(); }
-        else { localStorage.setItem("lang", lng); location.reload(); }
+    if (langBtn && langDD) {
+      langBtn.setAttribute("aria-expanded", "false");
+      langBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const nowHidden = langDD.classList.toggle("hidden");
+        langBtn.setAttribute("aria-expanded", String(!nowHidden));
       });
-    });
+      document.addEventListener("click", () => {
+        if (!langDD.classList.contains("hidden")) {
+          langDD.classList.add("hidden");
+          langBtn.setAttribute("aria-expanded", "false");
+        }
+      });
+      langDD.querySelectorAll("button[data-lang]")?.forEach((b) => {
+        b.addEventListener("click", async () => {
+          const lng = b.dataset.lang;
+          if (window.i18n?.setLang) { await window.i18n.setLang(lng, { persist: true }); setFlag(); }
+          else { localStorage.setItem("lang", lng); location.reload(); }
+        });
+      });
+    }
 
     // Logout
     logoutBtn?.addEventListener("click", async () => {
-      try { await supabase.auth.signOut(); toast("Wylogowano ✅"); }
-      finally { setTimeout(() => (location.href = "/pages/login.html"), 600); }
+      try {
+        await supabase.auth.signOut();
+        toast("Wylogowano ✅");
+      } finally {
+        setTimeout(() => (location.href = "/pages/login.html"), 600);
+      }
     });
 
     let loadedPoints = 0;
@@ -117,13 +145,13 @@ import { supabase } from "/src/js/supabaseClient.js";
         const p = prof || {};
         const email = userRes?.data?.user?.email || "";
 
-        if (nameInput)     nameInput.value = p.name || "";
-        if (surnameInput)  surnameInput.value = p.surname || "";
-        if (emailInput)    emailInput.value = email;
-        if (phoneInput)    phoneInput.value = p.phone || "";
-        if (birthdateInput)birthdateInput.value = p.birthdate || "";
-        if (genderSelect)  genderSelect.value = p.gender || "";
-        if (prefTextarea)  prefTextarea.value = p.preferences || "";
+        if (nameInput)       nameInput.value = p.name || "";
+        if (surnameInput)    surnameInput.value = p.surname || "";
+        if (emailInput)      emailInput.value = email;
+        if (phoneInput)      phoneInput.value = p.phone || "";
+        if (birthdateInput)  birthdateInput.value = p.birthdate || "";
+        if (genderSelect)    genderSelect.value = p.gender || "";
+        if (prefTextarea)    prefTextarea.value = p.preferences || "";
 
         const avatar =
           p.photo_url ||
@@ -136,7 +164,7 @@ import { supabase } from "/src/js/supabaseClient.js";
           userPhoto.referrerPolicy = "no-referrer";
         }
 
-        loadedPoints = Number(p.points || 0);
+        loadedPoints = Number.isFinite(+p.points) ? +p.points : 0;
         if (userPoints) userPoints.textContent = `${loadedPoints} pkt`;
         if (userLevel)  userLevel.textContent  = calcLevel(loadedPoints);
       } catch (e) {
@@ -156,25 +184,30 @@ import { supabase } from "/src/js/supabaseClient.js";
         const gender      = (genderSelect?.value || "") || null;
         const preferences = prefTextarea?.value?.trim() || "";
 
-        // простий бонус за заповнення (одноразово піднімаємо до 20, якщо було менше)
+        // бонус за заповнення (одноразово піднімаємо до 20, якщо було менше)
         const filledCount = [name, surname, phone, birthdate, gender, preferences].filter(Boolean).length;
         const completionBonus = filledCount >= 5 ? 20 : 0;
         const nextPoints = loadedPoints < completionBonus ? completionBonus : loadedPoints;
 
         const patch = { id: userId, name, surname, phone, birthdate, gender, preferences, points: nextPoints };
 
-        // avatar upload (опційно)
+        // avatar upload (опційно, до 5MB)
         if (photoInput?.files?.[0]) {
           const file = photoInput.files[0];
           if (!file.type.startsWith("image/")) throw new Error("Plik musi być obrazem.");
-          const path = `avatars/${userId}/${Date.now()}-${file.name}`;
+          const MAX_MB = 5;
+          if (file.size > MAX_MB * 1024 * 1024) throw new Error(`Maksymalny rozmiar: ${MAX_MB}MB.`);
+          const filename = `${Date.now()}-${sanitizeFilename(file.name)}`;
+          const path = `avatars/${userId}/${filename}`;
           const { error: upErr } = await supabase.storage
             .from("avatars")
             .upload(path, file, { upsert: false, contentType: file.type, cacheControl: "31536000" });
           if (upErr) throw upErr;
           const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-          patch.photo_url = pub.publicUrl;
-          if (userPhoto) userPhoto.src = pub.publicUrl;
+          if (pub?.publicUrl) {
+            patch.photo_url = pub.publicUrl;
+            if (userPhoto) userPhoto.src = pub.publicUrl;
+          }
         }
 
         const { error } = await supabase.from("profiles").upsert(patch).select("points").single();
@@ -186,7 +219,7 @@ import { supabase } from "/src/js/supabaseClient.js";
         toast("Profil zaktualizowany! 🎉");
       } catch (err) {
         console.error("[profile] save:", err);
-        toast("Błąd zapisu profilu.", "bg-red-600");
+        toast(err?.message || "Błąd zapisu profilu.", "bg-red-600");
       }
     });
 
@@ -196,7 +229,7 @@ import { supabase } from "/src/js/supabaseClient.js";
       const f = photoInput.files?.[0];
       if (!f || !f.type.startsWith("image/")) return;
       const reader = new FileReader();
-      reader.onload = (e) => (userPhoto.src = e.target.result);
+      reader.onload = (e2) => { if (userPhoto) userPhoto.src = e2.target.result; };
       reader.readAsDataURL(f);
     });
 
@@ -219,6 +252,7 @@ import { supabase } from "/src/js/supabaseClient.js";
         }
         eventEmpty && eventEmpty.classList.add("hidden");
 
+        const frag = document.createDocumentFragment();
         data.forEach((ev) => {
           const left = h("div", {}, [
             h("div", { class: "font-bold text-pink-700" }, [
@@ -243,6 +277,7 @@ import { supabase } from "/src/js/supabaseClient.js";
                   .eq("id", ev.id)
                   .eq("uid", userId);
                 if (delErr) {
+                  console.error("[events] delete:", delErr);
                   toast("Błąd usuwania", "bg-red-600");
                 } else {
                   toast("Usunięto wydarzenie ✅");
@@ -260,8 +295,9 @@ import { supabase } from "/src/js/supabaseClient.js";
             [left, delBtn]
           );
 
-          eventList.appendChild(row);
+          frag.appendChild(row);
         });
+        eventList.appendChild(frag);
       } catch (e) {
         console.error("[events] load:", e);
         toast("Błąd ładowania wydarzeń", "bg-red-600");
@@ -271,7 +307,6 @@ import { supabase } from "/src/js/supabaseClient.js";
     /* ───────────── events: create ───────────── */
     eventForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      // беремо поля ТІЛЬКИ за #id
       const titleEl   = $("#eventTitle");
       const dateEl    = $("#eventDate");
       const forWhoEl  = $("#eventForWho");
@@ -293,7 +328,7 @@ import { supabase } from "/src/js/supabaseClient.js";
         return;
       }
 
-      if (typeof eventModal?.close === "function") eventModal.close();
+      if (eventModal && typeof eventModal.close === "function") eventModal.close();
       else eventModal?.classList.add("hidden");
 
       eventForm.reset?.();
@@ -317,10 +352,13 @@ import { supabase } from "/src/js/supabaseClient.js";
           historyList.appendChild(h("li", {}, "Brak aktywności."));
           return;
         }
+        const frag = document.createDocumentFragment();
         data.forEach((ev) => {
-          const li = h("li", {}, `${ev.title || "Wydarzenie"} (${ev.date || "—"})${ev.person ? " – " + ev.person : ""}`);
-          historyList.appendChild(li);
+          frag.appendChild(
+            h("li", {}, `${ev.title || "Wydarzenie"} (${ev.date || "—"})${ev.person ? " – " + ev.person : ""}`)
+          );
         });
+        historyList.appendChild(frag);
       } catch (e) {
         console.error("[history] load:", e);
       }
@@ -329,9 +367,18 @@ import { supabase } from "/src/js/supabaseClient.js";
     /* ───────────── referral ───────────── */
     referralBtn?.addEventListener("click", () => {
       const link = `${location.origin}/?ref=${encodeURIComponent(userId)}`;
-      navigator.clipboard?.writeText(link)
+      (navigator.clipboard?.writeText(link) || Promise.reject())
         .then(() => toast("Link polecający skopiowany! ✨"))
-        .catch(() => toast("Błąd kopiowania.", "bg-red-600"));
+        .catch(() => {
+          // фолбек: показати в prompt
+          try {
+            // prompt повертає null якщо cancel
+            const ok = window.prompt("Skopiuj link polecający:", link);
+            ok != null ? toast("Skopiuj z pola powyżej.") : toast("Anulowano.", "bg-yellow-600");
+          } catch {
+            toast("Błąd kopiowania.", "bg-red-600");
+          }
+        });
     });
 
     /* ───────────── realtime (optional) ───────────── */
@@ -342,12 +389,14 @@ import { supabase } from "/src/js/supabaseClient.js";
           { event: "*", schema: "public", table: "events", filter: `uid=eq.${userId}` },
           () => { loadUserEvents(); loadUserHistory(); }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED" && isNaN) {/* noop to satisfy linter */}
+        });
       window.addEventListener("beforeunload", () => {
         try { supabase.removeChannel(channel); } catch {}
       });
-    } catch {
-      /* тихо ігноруємо, якщо Realtime недоступний */
+    } catch (e) {
+      console.warn("[realtime] disabled or unavailable:", e?.message || e);
     }
 
     /* ───────────── initial load ───────────── */

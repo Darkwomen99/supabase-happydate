@@ -1,39 +1,63 @@
 {
   "header": {
     "home": "Strona główna",
-    "services": "Usługi",
     "dashboard": "Moje wydarzenia",
+    "services": "Usługi",
     "partner": "Partnerstwo",
     "about": "O nas",
-    "reviews": "Opinie",
-    "profile": "Profil"
+    "reviews": "Opinie"
+  },
+  "hero": {
+    "title": "HappyDate — ciepły asystent, który przypomina o ważnych chwilach i pomaga wybrać prezenty prosto z serca 💛",
+    "description": "Zatrzymaj czas, spraw komuś niespodziankę i zobacz łzy radości…",
+    "ctaFind": "Znajdź prezent",
+    "ctaAdd": "Dodaj wydarzenie"
+  },
+  "howItWorks": {
+    "title": "Jak to działa?",
+    "step1": "Dodajesz wydarzenie do kalendarza",
+    "step2": "Wypełniasz szczegóły i preferencje",
+    "step3": "My zajmujemy się resztą ❤️"
+  },
+  "advantages": {
+    "title": "Dlaczego HappyDate?",
+    "ai": "AI — Inteligentny dobór prezentów",
+    "aiDesc": "Nasz AI pomoże Ci wybrać idealny prezent, uwzględniając preferencje obdarowanej osoby.",
+    "privacy": "Anonimowość i bezpieczeństwo",
+    "privacyDesc": "Twoje dane są bezpieczne. Gwarantujemy pełną anonimowość.",
+    "delivery": "Wygodna dostawa na czas",
+    "deliveryDesc": "Prezent dotrze dokładnie wtedy, kiedy powinien — bez stresu.",
+    "emotions": "Emocje na pierwszym miejscu",
+    "emotionsDesc": "HappyDate to więcej niż prezent — to chwila, wspomnienie i miłość."
   },
   "reviews": {
     "title": "Opinie naszych użytkowników 💬",
-    "hero": "Twoja opinia sprawia, że HappyDate staje się lepszy i jeszcze bardziej magiczny! Podziel się emocjami — dla nas to ważne!",
-    "formTitle": "Dodaj swoją opinię",
-    "listTitle": "Twoje opinie:"
+    "adam": {
+      "text": "🎁 „Dzięki HappyDate nie zapomniałem o urodzinach żony. Prezent był strzałem w dziesiątkę!”",
+      "author": "— Adam, Warszawa"
+    },
+    "kasia": {
+      "text": "💌 „Zgodziłam się z siostrą po latach — prezent z HappyDate to był przełom!”",
+      "author": "— Kasia, Gdańsk"
+    },
+    "ola": {
+      "text": "🌟 „Dostałam kwiaty i voucher w dzień Mamy — dokładnie tak, jak marzyłam.”",
+      "author": "— Ola, Kraków"
+    }
   },
-  "profile": {
-    "name": "Imię",
-    "surname": "Nazwisko",
-    "email": "Email",
-    "phone": "Telefon",
-    "birthdate": "Data urodzenia",
-    "gender": "Płeć",
-    "preferences": "Preferencje",
-    "save": "Zapisz profil"
-  },
-  "dashboard": {
-    "title": "Moje wydarzenia",
-    "addEvent": "Dodaj wydarzenie",
-    "upcoming": "Nadchodzące wydarzenia"
-  },
-  "footer": {
-    "text": "© 2025 HappyDate. Z miłością tworzymy niezapomniane chwile."
+  "gifts": {
+    "title": "🎁 Przykładowe prezenty",
+    "romantic": "Zestaw SPA + kartka „Kocham Cię”",
+    "flowers": "Kwiaty + list z przeprosinami",
+    "box": "Box z niespodzianką + voucher",
+    "voucher": "Voucher na masaż i kolację"
   },
   "cookies": {
     "text": "Ta strona używa plików cookies, by ulepszyć Twój komfort. Korzystając dalej z serwisu, akceptujesz naszą Politykę Prywatności.",
     "accept": "Akceptuję"
+  },
+  "footer": {
+    "text": "© 2025 HappyDate. Z miłością tworzymy niezapomniane chwile."
   }
 }
+

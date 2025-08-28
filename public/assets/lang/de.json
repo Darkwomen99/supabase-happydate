@@ -1,69 +1,62 @@
 {
   "header": {
-    "title": "🎁 HappyDate",
     "home": "Startseite",
-    "services": "Dienstleistungen",
     "dashboard": "Meine Ereignisse",
+    "services": "Leistungen",
     "partner": "Partnerschaft",
     "about": "Über uns",
-    "reviews": "Bewertungen",
-    "register": "Registrieren",
-    "login": "Anmelden",
-    "logout": "Abmelden",
-    "dashboardPanel": "Benutzerbereich"
-  },
+    "reviews": "Bewertungen"
+    },
   "hero": {
-    "title": "Lass jedes wichtige Datum magisch werden ✨",
-    "description": "HappyDate ist dein persönlicher Assistent für Geschenke und Emotionen. Wir sorgen dafür, dass du keinen besonderen Moment vergisst.",
-    "cta": "Jetzt starten",
-    "ctaFind": "Geschenk finden 🎁",
-    "ctaAdd": "Ereignis hinzufügen 📅"
+    "title": "HappyDate – dein herzlicher Assistent, der an wichtige Momente erinnert und bei der Geschenkwahl hilft 💛",
+    "description": "Halte die Zeit an, bereite jemandem eine Überraschung und sieh die Freudentränen …",
+    "ctaFind": "Geschenk finden",
+    "ctaAdd": "Ereignis hinzufügen"
   },
   "howItWorks": {
-    "title": "Wie funktioniert das?",
-    "step1": "Füge ein Ereignis zum Kalender hinzu",
-    "step2": "Fülle Details und Vorlieben aus",
+    "title": "So funktioniert’s",
+    "step1": "Du fügst ein Ereignis zum Kalender hinzu",
+    "step2": "Du füllst Details und Vorlieben aus",
     "step3": "Wir kümmern uns um den Rest ❤️"
   },
   "advantages": {
     "title": "Warum HappyDate?",
-    "ai": "🎁 KI — Intelligente Geschenkauswahl",
-    "aiDesc": "Unsere KI hilft dir, das perfekte Geschenk basierend auf den Vorlieben des Beschenkten zu finden.",
-    "privacy": "🔐 Anonymität und Sicherheit",
-    "privacyDesc": "Deine Daten sind sicher. Wir garantieren vollständige Anonymität.",
-    "delivery": "🚚 Pünktliche Lieferung",
-    "deliveryDesc": "Das Geschenk kommt genau zum richtigen Zeitpunkt — stressfrei.",
-    "emotions": "❤️ Emotionen an erster Stelle",
-    "emotionsDesc": "HappyDate ist mehr als nur ein Geschenk – es ist ein Moment, eine Erinnerung, Liebe."
+    "ai": "KI — Intelligente Geschenkauswahl",
+    "aiDesc": "Unsere KI hilft dir, das perfekte Geschenk zu finden – abgestimmt auf die Vorlieben der beschenkten Person.",
+    "privacy": "Anonymität & Sicherheit",
+    "privacyDesc": "Deine Daten sind sicher. Wir garantieren volle Anonymität.",
+    "delivery": "Bequeme, pünktliche Lieferung",
+    "deliveryDesc": "Das Geschenk kommt genau dann an, wenn es soll – ganz ohne Stress.",
+    "emotions": "Emotionen an erster Stelle",
+    "emotionsDesc": "HappyDate ist mehr als ein Geschenk – es ist ein Moment, eine Erinnerung und Liebe."
   },
   "reviews": {
-    "title": "Nutzerbewertungen 💬",
+    "title": "Stimmen unserer Nutzer 💬",
     "adam": {
-      "text": "🎁 \"Dank HappyDate habe ich den Geburtstag meiner Frau nicht vergessen. Das Geschenk war perfekt!\"",
+      "text": "🎁 „Dank HappyDate habe ich den Geburtstag meiner Frau nicht vergessen. Das Geschenk war ein Volltreffer!“",
       "author": "— Adam, Warschau"
     },
     "kasia": {
-      "text": "💌 \"Ich habe mich nach Jahren mit meiner Schwester versöhnt – das Geschenk von HappyDate war ein Wendepunkt!\"",
+      "text": "💌 „Ich habe mich nach Jahren mit meiner Schwester versöhnt – das Geschenk von HappyDate war der Durchbruch!“",
       "author": "— Kasia, Danzig"
     },
     "ola": {
-      "text": "🌟 \"Ich habe Blumen und einen Gutschein zum Muttertag bekommen – genau wie ich es mir gewünscht habe.\"",
+      "text": "🌟 „Zum Muttertag bekam ich Blumen und einen Gutschein – genau wie ich es mir gewünscht hatte.“",
       "author": "— Ola, Krakau"
     }
   },
   "gifts": {
-    "title": "🎁 Geschenkideen",
-    "romantic": "SPA-Set + \"Ich liebe dich\"-Karte",
+    "title": "🎁 Beispielgeschenke",
+    "romantic": "SPA-Set + Karte „Ich liebe dich“",
     "flowers": "Blumen + Entschuldigungsschreiben",
     "box": "Überraschungsbox + Gutschein",
     "voucher": "Gutschein für Massage und Abendessen"
   },
+  "cookies": {
+    "text": "Diese Website verwendet Cookies, um dein Erlebnis zu verbessern. Durch die weitere Nutzung akzeptierst du unsere Datenschutzrichtlinie.",
+    "accept": "Ich stimme zu"
+  },
   "footer": {
     "text": "© 2025 HappyDate. Mit Liebe schaffen wir unvergessliche Momente."
-  },
-  "meta": {
-    "description": "HappyDate – dein persönlicher Geschenkassistent. Sorge für besondere Momente deiner Liebsten mit perfekt abgestimmten Überraschungen!",
-    "ogTitle": "HappyDate – Magische Geschenke für jeden Anlass",
-    "ogDescription": "Überrasche deine Liebsten mit einzigartigen Geschenken – Erinnerungen, Auswahl, Lieferung und Emotionen an einem Ort!"
   }
 }
